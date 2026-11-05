@@ -15,7 +15,7 @@ Objective: complete AQELITH milestones M0 and M1 (environment audit, competitive
 - T2 (S4, S5) competitor research x6 — delegated (parallel units: disjoint output files, independent projects) — done; builds and tests rerun inline after Docker was moved to the SSD (see each report). Open gaps recorded in the reports: Astra source not public; Zerolang test suite not completed; AICore 3 test failures unexplained — commit: 480bf49
 - T3 (S3) reference ecosystems — delegated — done — commit: 480bf49
 - T4 (S6) branding research — delegated — done; brand decision PENDING USER APPROVAL — commit: fa9005d
-- T5 (S3) synthesis docs + M1 report — inline — done — commit: unit 4 (hash in `git log`)
+- T5 (S3) synthesis docs + M1 report — inline — done — commit: 230e4b8
 
 ## Log
 - L1 (2026-11-05): the user pasted the "AQELITH — MASTER BUILD DIRECTIVE" (24 sections). It is too long to copy here; S1–S7 quote its binding lines verbatim. Plan: `~/.claude/plans/pasted-content-id-3271-aqelith-smooth-horizon.md`.
