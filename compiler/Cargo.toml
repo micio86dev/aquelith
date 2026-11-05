@@ -1,0 +1,15 @@
+[package]
+name = "aqelith"
+version = "0.0.1"
+edition = "2021"
+publish = false
+description = "AQELITH compiler foundation v0 (M4): lexer, parser, checker, formatter, query. Not a release."
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "aqelith"
+path = "src/main.rs"
+
+[dependencies]

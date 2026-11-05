@@ -1,0 +1,9 @@
+module effects
+
+fn log(msg: u32) uses io {
+    let copy = msg;
+}
+
+fn run() uses io, net {
+    log(7);
+}

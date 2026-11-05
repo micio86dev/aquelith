@@ -1,0 +1,5 @@
+module m
+
+fn f() -> bool {
+    1 == 2 == 3
+}

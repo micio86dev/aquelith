@@ -1,0 +1,8 @@
+module m
+
+fn g() uses io {
+}
+
+fn f() {
+    g();
+}

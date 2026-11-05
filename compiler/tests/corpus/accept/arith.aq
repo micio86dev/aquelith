@@ -1,0 +1,11 @@
+module arith
+
+fn add(a: i32, b: i32) -> i32 {
+    a + b * 2
+}
+
+fn main() uses io {
+    let x: u32 = 42;
+    let y = add(1, 2);
+    y == 3;
+}
