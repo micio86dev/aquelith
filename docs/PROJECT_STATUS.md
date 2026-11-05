@@ -5,7 +5,7 @@ Last updated: 2026-11-05
 | Milestone | State |
 |---|---|
 | M0 Environment and repository | Done (commit c8abf1b) |
-| M1 Competitive research | In progress: six competitor audits, reference ecosystems and naming research written; synthesis (matrix, adoption, rejected ideas, report) pending |
+| M1 Competitive research | Complete with documented gaps (see docs/reports/M1_RESEARCH_REPORT.md): Astra source private, Zerolang test suite incomplete, three AICore test failures unexplained |
 | M2 Architecture synthesis | Planned |
 | M3–M9 | Planned |
 
