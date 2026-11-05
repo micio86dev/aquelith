@@ -1,0 +1,8 @@
+[package]
+name = "stable_ids_patch"
+version = "0.0.0"
+edition = "2021"
+publish = false
+description = "AQELITH prototype P1: persistent ids and validated atomic patches (toy model, not production)"
+
+[dependencies]

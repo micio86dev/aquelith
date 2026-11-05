@@ -1,0 +1,8 @@
+[package]
+name = "capability_values"
+version = "0.0.0"
+edition = "2021"
+publish = false
+description = "AQELITH prototype P2: capability values versus string-keyed tokens (Rust pattern test, not AQELITH runtime)"
+
+[dependencies]

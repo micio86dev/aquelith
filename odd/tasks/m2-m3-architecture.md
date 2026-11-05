@@ -17,16 +17,16 @@ Objective: complete M2 (architecture synthesis: specs, ADRs, risk register, open
 - S13: directive §0.2: do not interrupt for routine decisions; ask only at genuine gates (brand/publication, paid services, destructive actions, secrets, product direction change).
 
 ## Tasks
-- T1 (S2) ADRs (`docs/adr/`), architecture overview with diagrams, risk register, open questions — inline — pending
-- T2 (S3) language specs — inline — pending
-- T3 (S4) security specs — inline — pending
-- T4 (S5, S9) performance and testing specs, benchmarks README — inline — pending
-- T5 (S6, S10) platform specs — inline — pending
-- T6 (S7, S8) compiler, application and resumability specs — inline — pending
-- T7 (S2) M2 report — inline — pending
-- T8 (S11) prototype P1: stable identities and validated patches (`prototypes/stable-ids-patch`) — inline — pending
-- T9 (S11) prototype P2: capability values vs string tokens (`prototypes/capability-values`) — inline — pending
-- T10 (S11) M3 feasibility report — inline — pending
+- T1 (S2) ADRs (`docs/adr/`), architecture overview with diagrams, risk register, open questions — inline — done
+- T2 (S3) language specs — inline — done — commit: unit 1
+- T3 (S4) security specs — inline — done — commit: unit 1
+- T4 (S5, S9) performance and testing specs, benchmarks README — inline — done — commit: unit 2
+- T5 (S6, S10) platform specs — inline — done — commit: unit 2
+- T6 (S7, S8) compiler, application and resumability specs — inline — done — commit: unit 1 (app) and unit 2 (compiler)
+- T7 (S2) M2 report — inline — done — commit: unit 3
+- T8 (S11) prototype P1: stable identities and validated patches (`prototypes/stable-ids-patch`) — inline — done — 8/8 tests; 2 mutations detected — commit: unit 4
+- T9 (S11) prototype P2: capability values vs string tokens (`prototypes/capability-values`) — inline — done — 5/5 tests + compile-fail doctest; root-authority finding (Q23) — commit: unit 4
+- T10 (S11) M3 feasibility report — inline — done — commit: unit 4
 
 ## Log
 - L1 (2026-11-05, verbatim): "A me piace aquelith per ora non cambiarlo, procedi con M2 e tutto il resto senza fermarti"
