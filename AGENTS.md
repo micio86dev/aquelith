@@ -12,7 +12,8 @@ Provisional codename. Not cleared for public use (see `docs/branding/`).
 - Research before implementation; evidence before decisions; measurements before performance claims.
 - Never claim AQELITH is faster, safer, or more portable than another language without reproducible evidence.
 - Documentation describes implemented behavior only. Mark planned work as planned.
-- Cite URL + commit/release + inspection date for every claim about third-party projects.
+- Competitor audits (`docs/research/competitors/`): cite URL + commit/release + inspection date for every claim about the audited project (master directive §2.3).
+- Reference-ecosystem documents (`docs/research/REFERENCE_ECOSYSTEMS.md`): cite URL + access date, plus the document version or revision where the site exposes one; where it does not, say so in the document. They are concept sources, not audited projects (directive §2.2).
 - Classify competitor features: implemented-tested / experimental / partial / planned / marketing-only / not-verifiable.
 - Source code, comments, docs, commits, and issues are in English.
 - Conventional commits. No AI attribution lines in commits.

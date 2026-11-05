@@ -11,12 +11,13 @@ Objective: complete AQELITH milestones M0 and M1 (environment audit, competitive
 - S7: "Stop only at the explicit brand/publication approval gate or when a genuine external blocker makes further progress impossible."
 
 ## Tasks
-- T1 (S2) M0 scaffold + audit — inline — done — commit: pending
-- T2 (S4, S5) competitor research x6 — delegated (parallel units) — pending
-- T3 (S3) reference ecosystems — delegated — pending
-- T4 (S6) branding research — delegated — pending
+- T1 (S2) M0 scaffold + audit — inline — done — commit: c8abf1b
+- T2 (S4, S5) competitor research x6 — delegated (parallel units: disjoint output files, independent projects) — done; builds and tests rerun inline after Docker was moved to the SSD (see each report). Open gaps recorded in the reports: Astra source not public; Zerolang test suite not completed; AICore 2 test failures unexplained — commit: pending (unit 2)
+- T3 (S3) reference ecosystems — delegated — done — commit: pending (unit 2)
+- T4 (S6) branding research — delegated — done; brand decision PENDING USER APPROVAL — commit: pending (unit 3)
 - T5 (S3) synthesis docs + M1 report — inline — pending
 
 ## Log
 - L1 (2026-11-05): the user pasted the "AQELITH — MASTER BUILD DIRECTIVE" (24 sections). It is too long to copy here; S1–S7 quote its binding lines verbatim. Plan: `~/.claude/plans/pasted-content-id-3271-aqelith-smooth-horizon.md`.
+- L3 (2026-11-05): the user chose to move Docker's data folder to the SSD (`DataFolder` in Docker Desktop's `settings-store.json`; backup in `aqelith-lab/settings-store.json.bak`; old 51 GiB `Docker.raw` left in place). User instruction: "rilancia su docker, non lasciarmi lavori incompleti!" (rerun the builds on Docker, do not leave incomplete work).
 - L2: Environment probed. Correction to plan: rustup 1.29.0 is installed but the active rustc is the Homebrew one (see audit).
