@@ -1,6 +1,6 @@
 # Loopback HTTP host (milestone S3)
 
-Status: **implemented for the minimal handler.** Source: `compiler/src/serve.rs`, binary `compiler/src/bin/aqelith-serve.rs`. Tests: `compiler/tests/serve.rs` (7 tests, real sockets on 127.0.0.1).
+Status: **implemented for the record contract.** Source: `compiler/src/serve.rs`, binary `compiler/src/bin/aqelith-serve.rs`. Tests: `compiler/tests/serve.rs`, which use real sockets on 127.0.0.1.
 
 ## What it does
 
@@ -9,14 +9,14 @@ aqelith-serve site.aq --port 8080
 curl http://127.0.0.1:8080/docs    # 200, body = what handle returns for "/docs"
 ```
 
-The program provides one function: `fn handle(path: str) -> str`, with no declared effect. For each request the host runs the handler with the request path (query string removed) and sends the returned text as the body.
+The program provides one function: `fn handle(req: Request) -> Response`, with no declared effect, where `record Request { path: str }` and `record Response { body: str }`. For each request the host passes a `Request` holding the path (query string removed) and sends the `body` of the returned `Response` as the response body.
 
 ## Decisions taken (reversible)
 
 | Decision | Chosen | Why |
 |---|---|---|
 | Who owns the socket | **The host**, not the language. The `net` effect stays refused inside the language. | Keeps the language free of I/O and makes every socket visible in one module. |
-| Request and response values | **Minimal:** the request is its path (`str`); the response is its body (`str`). | v0 has no record types. Headers, methods and status codes need records, which are a separate slice. |
+| Request and response values | **Records**, with one field each: `Request { path: str }` and `Response { body: str }`. | Named, typed and explicit, so an agent can check them. Planned: headers, methods and status codes as further fields, once the host passes them. |
 | Binding | **127.0.0.1 only.** | No network exposure from a development server. |
 | Host header | Must be `127.0.0.1:<port>` or `localhost:<port>`, otherwise `403`, before the handler runs. | Blocks DNS rebinding from a browser. |
 | Methods | `GET` only; other methods `405`. | The handler has no request body to read. |

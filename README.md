@@ -1,6 +1,6 @@
 # AQELITH (provisional name)
 
-AQELITH is an experimental programming language designed so that coding agents can write, check and change programs safely. Every program is checked before it runs, and every diagnostic has a stable code.
+AQELITH is an experimental programming language designed so that coding agents can write, check and change programs with checks that report stable diagnostic codes. Every program is checked before it runs, and every diagnostic has a stable code.
 
 > **Name status:** AQELITH is an internal codename. It has not been cleared legally or commercially. Do not publish packages, releases or a public repository under it. See [docs/branding/BRAND_DECISION.md](docs/branding/BRAND_DECISION.md).
 
@@ -10,13 +10,14 @@ AQELITH is an experimental programming language designed so that coding agents c
 
 | Area | Works | Where |
 |---|---|---|
-| Language v0 | `i32`, `u32`, `bool`, `unit`; functions; effects; `page` items with text | [docs/language/GRAMMAR.md](docs/language/GRAMMAR.md) |
+| Language v0 | `i32`, `u32`, `bool`, `str`, `unit`; functions; effects; records; `page` items with text | [docs/language/GRAMMAR.md](docs/language/GRAMMAR.md), [docs/language/RECORDS.md](docs/language/RECORDS.md) |
 | Compiler CLI | `check`, `fmt`, `query`, `explain`, `patch`, `ids`, `repair` | `compiler/` |
 | Agent server | MCP over stdio: `aqelith_check`, `aqelith_format`, `aqelith_query`, `aqelith_explain`, `aqelith_patch` | `compiler/src/bin/aqelith-mcp.rs` |
 | Agent skill | Language reference for agents | [skills/aqelith/SKILL.md](skills/aqelith/SKILL.md) |
 | Web target | Static sites from `page` items, with minified HTML, a Content-Security-Policy, and a live-reload dev server | `web/` |
+| Loopback host | `aqelith-serve <file.aq>` serves `fn handle(req: Request) -> Response` on 127.0.0.1, with Host, method and size limits | `compiler/src/bin/aqelith-serve.rs`, [docs/architecture/SERVE.md](docs/architecture/SERVE.md) |
 
-*Planned, not built:* client-side state and events in pages, native backends (desktop, mobile), a package manager, runtime capabilities, a production server, and any backend (server-side) target. The language does not yet run a server program.
+*Planned, not built:* client-side state and events in pages, native backends (desktop, mobile, embedded), other operating systems, a package manager, runtime capabilities, a production or non-loopback server, TLS, and records in pages. The desktop, mobile and embedded targets have no backend yet.
 
 ## Install
 
@@ -101,7 +102,7 @@ web/target/release/examples/dev_site notes.aq [style.css] --port 8080   # live r
 
 ## Language in one page
 
-- **Types:** `i32`, `u32`, `bool`, `unit`. Literals take their type from context.
+- **Types:** `i32`, `u32`, `bool`, `str`, `unit`, and records. Literals take their type from context.
 - **Functions:** the last expression of a block is its value; there is no `return`.
 - **Effects:** a function that calls an effectful function must declare the effect in `uses`. A function with no `uses` is pure. The core effects are `io fs net time rand env proc concurrency ui unsafe`.
 - **Diagnostics:** every error has a stable code (for example `TYP001`, `PAGE005`). Read the meaning with `aqelith explain <CODE>` rather than parsing the message.
@@ -111,7 +112,7 @@ The full list of commands, codes and patch operations is in [skills/aqelith/SKIL
 
 ## Limits you should know
 
-- No server programs, no client-side state in pages, no imports, no closures. Strings in functions are `str` values with equality and return only; there is no concatenation.
+- No client-side state in pages, no imports, no closures, no methods on records. Strings in functions are `str` values with equality and return only; there is no concatenation.
 - The web target is static. Any text is HTML-escaped; routes must be lowercase paths.
 - Performance has not been measured on a reference machine. Build times and sizes in `docs/performance/` and `docs/reports/` are single samples on a development machine.
 - Security review of the compiler and the web target is in progress; see `docs/security/`.

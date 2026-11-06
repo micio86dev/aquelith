@@ -25,7 +25,8 @@ Exit codes: `0` success; `1` diagnostics or function not found; `2` usage or I/O
 
 ## Language rules that matter
 
-- The file starts with `module <name>`. Then `fn` and `page` items follow.
+- The file starts with `module <name>`. Then `record`, `fn` and `page` items follow.
+- Records (S2, docs/language/RECORDS.md): `record Name { field: type, ... }` at module level, with types `i32`, `u32`, `bool`, `str` or another record. Build one with `Name { field: expr, ... }`, naming every field exactly once in any order. Read a field with `expr.field`. A record has no methods, no defaults, and no `==`. `fn handle(req: Request) -> Response` with `record Request { path: str }` and `record Response { body: str }` is the loopback server contract (docs/architecture/SERVE.md).
 - Types: `i32`, `u32`, `bool`, `unit`. Integer literals take their type from context; with none they are `i32`.
 - Effects: a fixed core set (`io fs net time rand env proc concurrency ui unsafe`). A function that calls an effectful function must declare that effect in `uses`. A function with no `uses` is pure.
 - The last expression of a block (without `;`) is its value. There is no `return`.
@@ -45,7 +46,7 @@ Stable codes. Read the meaning with `aqelith explain`; do not parse message text
 - EFF001, EFF002: effects (undeclared effect in a call, unknown effect name).
 - TYP001, TYP002, TYP003, TYP004: types (mismatch, literal range, arity, unknown type).
 - RES001: unknown name or function.
-- DUP001: duplicate function or page name.
+- DUP001: duplicate function, page, record or record field name, or a parameter declared twice.
 - PAGE001, PAGE002, PAGE003, PAGE004, PAGE005: pages (title missing or repeated, empty text, invalid route or link target, duplicate route, link to a missing route).
 - PAT001, PAT002, PAT003, PAT004, PAT005, PAT006: patch rejections (malformed document, stale base, failed precondition, unknown target, candidate fails the checker, source does not parse).
 
