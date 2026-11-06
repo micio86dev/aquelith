@@ -1,6 +1,7 @@
 //! Name, type and effect checking for the v0 subset.
 //! One diagnostic per function body (the first error in it); every function is checked.
 
+use std::cell::RefCell;
 use std::collections::BTreeMap;
 
 use crate::ast::*;
@@ -12,7 +13,32 @@ pub struct Sig {
     pub uses: Vec<String>,
 }
 
+/// The type of every expression of one checked function, keyed by its byte span `(start, end)`.
+/// Spans are unique per expression node, so the span identifies the node (see `type_module`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FnTypes {
+    pub name: String,
+    pub expr: BTreeMap<(usize, usize), Ty>,
+}
+
+/// Checks a module and returns its function types, in source order, only when it has no
+/// diagnostics. This is the entry point for lowering: a module the checker rejects gets no IR.
+pub fn type_module(src: &str, m: &Module) -> Result<Vec<FnTypes>, Vec<Diagnostic>> {
+    let (diags, types) = analyze(src, m);
+    if !diags.is_empty() {
+        return Err(diags);
+    }
+    Ok(types.into_iter().flatten().collect())
+}
+
 pub fn check_module(src: &str, m: &Module) -> Vec<Diagnostic> {
+    analyze(src, m).0
+}
+
+/// Diagnostics of the module, and per function the recorded types (`None` for a function that
+/// has a diagnostic). Diagnostics are the same as `check_module` returns.
+fn analyze(src: &str, m: &Module) -> (Vec<Diagnostic>, Vec<Option<FnTypes>>) {
+    let mut types: Vec<Option<FnTypes>> = Vec::new();
     let mut diags = Vec::new();
     let mut sigs: BTreeMap<String, Sig> = BTreeMap::new();
     for f in &m.items {
@@ -36,12 +62,19 @@ pub fn check_module(src: &str, m: &Module) -> Vec<Diagnostic> {
         );
     }
     for f in &m.items {
-        if let Err(d) = check_fn(src, &sigs, f) {
-            diags.push(d);
+        match check_fn(src, &sigs, f) {
+            Ok(expr) => types.push(Some(FnTypes {
+                name: f.name.clone(),
+                expr,
+            })),
+            Err(d) => {
+                diags.push(d);
+                types.push(None);
+            }
         }
     }
     diags.extend(crate::pages::check_pages(src, &m.pages));
-    diags
+    (diags, types)
 }
 
 struct Ctx<'a> {
@@ -49,14 +82,21 @@ struct Ctx<'a> {
     sigs: &'a BTreeMap<String, Sig>,
     uses: &'a [String],
     locals: Vec<(String, Ty)>,
+    /// Recorded type of each expression that has been checked, by span.
+    types: RefCell<BTreeMap<(usize, usize), Ty>>,
 }
 
-fn check_fn(src: &str, sigs: &BTreeMap<String, Sig>, f: &FnDef) -> Result<(), Diagnostic> {
+fn check_fn(
+    src: &str,
+    sigs: &BTreeMap<String, Sig>,
+    f: &FnDef,
+) -> Result<BTreeMap<(usize, usize), Ty>, Diagnostic> {
     let mut cx = Ctx {
         src,
         sigs,
         uses: &f.uses,
         locals: f.params.iter().map(|p| (p.name.clone(), p.ty)).collect(),
+        types: RefCell::new(BTreeMap::new()),
     };
     for stmt in &f.body.stmts {
         match stmt {
@@ -86,7 +126,7 @@ fn check_fn(src: &str, sigs: &BTreeMap<String, Sig>, f: &FnDef) -> Result<(), Di
         }
         None => {}
     }
-    Ok(())
+    Ok(cx.types.into_inner())
 }
 
 impl Ctx<'_> {
@@ -119,7 +159,15 @@ impl Ctx<'_> {
         }
     }
 
+    /// Checks one expression and records its type. A node is recorded once, with the type it has
+    /// in its context, which is what lowering needs.
     fn expr(&self, e: &Expr, expected: Option<Ty>) -> Result<Ty, Diagnostic> {
+        let ty = self.expr_inner(e, expected)?;
+        self.types.borrow_mut().insert((e.start, e.end), ty);
+        Ok(ty)
+    }
+
+    fn expr_inner(&self, e: &Expr, expected: Option<Ty>) -> Result<Ty, Diagnostic> {
         match &e.kind {
             ExprKind::Int(text) => {
                 let value: u64 = text.parse().map_err(|_| {
