@@ -123,3 +123,86 @@ fn ok_reply(id: &Json, result: &str) -> String {
 fn error_reply(id: &Json, code: i64, message: &str) -> String {
     format!("{{\"jsonrpc\":\"2.0\",\"id\":{},\"error\":{{\"code\":{code},\"message\":{}}}}}", id_json(id), jstr(message))
 }
+
+/// Largest request body accepted over HTTP (1 MiB).
+const MAX_BODY: usize = 1 << 20;
+
+/// Serves MCP over HTTP: `POST /mcp` with one JSON-RPC message per request. Answers 200 with the
+/// reply, or 202 with no body for a notification. Only loopback peers are meant to reach it: the
+/// `Host` header must name localhost, which blocks DNS rebinding from a web page. `max_requests`
+/// stops the loop after that many connections (for tests); None serves until an error.
+pub fn serve_http(listener: &std::net::TcpListener, max_requests: Option<usize>) -> std::io::Result<()> {
+    for (served, stream) in listener.incoming().enumerate() {
+        let mut stream = stream?;
+        // A broken client must not stop the server: its I/O error ends only its connection.
+        let _ = handle_connection(&mut stream);
+        if max_requests.is_some_and(|max| served + 1 >= max) {
+            break;
+        }
+    }
+    Ok(())
+}
+
+fn handle_connection(stream: &mut std::net::TcpStream) -> std::io::Result<()> {
+    use std::io::{BufRead, BufReader, Read, Write};
+    let mut reader = BufReader::new(stream.try_clone()?);
+    let mut request_line = String::new();
+    reader.read_line(&mut request_line)?;
+    let mut parts = request_line.split_whitespace();
+    let (method, path) = (parts.next().unwrap_or(""), parts.next().unwrap_or(""));
+
+    let mut host: Option<String> = None;
+    let mut length: Option<usize> = None;
+    loop {
+        let mut line = String::new();
+        if reader.read_line(&mut line)? == 0 || line == "\r\n" || line == "\n" {
+            break;
+        }
+        if let Some((name, value)) = line.split_once(':') {
+            let value = value.trim();
+            if name.eq_ignore_ascii_case("host") {
+                host = Some(value.to_string());
+            } else if name.eq_ignore_ascii_case("content-length") {
+                length = value.parse().ok();
+            }
+        }
+    }
+
+    let respond = |stream: &mut std::net::TcpStream, status: &str, body: &str| -> std::io::Result<()> {
+        let type_line = if body.is_empty() { "" } else { "Content-Type: application/json\r\n" };
+        write!(
+            stream,
+            "HTTP/1.1 {status}\r\n{type_line}Content-Length: {}\r\nConnection: close\r\n\r\n{body}",
+            body.len()
+        )?;
+        stream.flush()
+    };
+
+    if !host.as_deref().is_some_and(is_local_host) {
+        return respond(stream, "403 Forbidden", "");
+    }
+    if method != "POST" || path != "/mcp" {
+        return respond(stream, "404 Not Found", "");
+    }
+    let Some(length) = length.filter(|n| *n <= MAX_BODY) else {
+        return respond(stream, "413 Payload Too Large", "");
+    };
+    let mut body = vec![0u8; length];
+    reader.read_exact(&mut body)?;
+    let Ok(text) = String::from_utf8(body) else {
+        return respond(stream, "400 Bad Request", "");
+    };
+    match handle_line(text.trim()) {
+        Some(reply) => respond(stream, "200 OK", &reply),
+        None => respond(stream, "202 Accepted", ""),
+    }
+}
+
+/// Host header values that name this machine: localhost, 127.0.0.1 or [::1], with an optional port.
+pub fn is_local_host(host: &str) -> bool {
+    let name = match host.strip_prefix('[') {
+        Some(rest) => rest.split_once(']').map_or("", |(ip, _)| ip),
+        None => host.split(':').next().unwrap_or(""),
+    };
+    matches!(name, "localhost" | "127.0.0.1" | "::1")
+}

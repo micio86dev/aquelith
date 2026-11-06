@@ -74,7 +74,7 @@ A patch is a JSON document. The compiler decides whether it applies; a rejected 
 
 ## MCP server
 
-`aqelith-mcp` speaks MCP protocol 2024-11-05 over stdin and stdout, one JSON-RPC message per line. Every tool takes source text as an argument. `aqelith_patch` returns a candidate with `status` "candidate" and never writes; a rejected patch is returned with `isError` true and its PAT code. To write, the agent passes the candidate to `aqelith patch` or `aqelith fmt --write`.
+`aqelith-mcp` speaks MCP protocol 2024-11-05 over stdin and stdout, one JSON-RPC message per line. With `--http 127.0.0.1:PORT` it serves `POST /mcp` instead; only loopback addresses are accepted, and a request whose `Host` header is not localhost gets 403. Every tool takes source text as an argument. `aqelith_patch` returns a candidate with `status` "candidate" and never writes; a rejected patch is returned with `isError` true and its PAT code. To write, the agent passes the candidate to `aqelith patch` or `aqelith fmt --write`.
 
 ## Workflow for an agent
 

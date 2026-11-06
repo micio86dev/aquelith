@@ -6,7 +6,7 @@ Status: **Partly implemented (M5 slice v1).** `aqelith patch` implements §3 and
 
 An agent proposes a change; the compiler decides whether it applies. Syntactically valid JSON is not enough: every patch is checked against the current graph state, and a stale patch is rejected without touching storage (directive §10.3).
 
-## 2. Patch shape
+## 2. Patch shape (the `sym:`/`node:` target forms are planned; function-name and `id:` targets are implemented, see §8)
 
 ```json
 {
@@ -40,13 +40,15 @@ Step 5 and 6 are the lesson from the Zerolang audit: its patch path accepted typ
 
 ## 5. Operations (v1 proposal)
 
+Implemented ops are listed in §8; `set-field` in this list is planned, not built.
+
 `rename`, `replace`, `insert`, `delete`, `set-field`, `add-effect`, `remove-effect`. Anything else requires a new API version. Structural rewrite-by-example is deferred (adoption matrix row 10).
 
 ## 6. Evidence
 
 - Zerolang: graph-hash and node-hash preconditions, rejection leaves storage byte-identical (IT in the audit, reproduced). Its identity was position-derived; AQELITH uses persistent ids ([STABLE_IDENTITIES.md](STABLE_IDENTITIES.md)).
 - Edict: node-id patches with atomic reject (IT).
-- Orison: patch IR with dry-run and partial apply (IT). AQELITH keeps atomic all-or-none, which is safer for agents.
+- Orison: patch IR with dry-run and partial apply (IT). AQELITH keeps atomic all-or-none so a rejected patch never leaves partial state (a design rationale, not a measured comparison).
 
 ## 7. Limits
 
