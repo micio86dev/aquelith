@@ -1,6 +1,6 @@
 # AQELITH Semantic Patch API
 
-Status: **Partly implemented (M5 slice v1).** `aqelith patch` implements §3 and §4 for four ops, with function names as targets (§8). Prototype P1 ([../../prototypes/stable-ids-patch/README.md](../../prototypes/stable-ids-patch/README.md)) tested the precondition and rejection rules in isolation.
+Status: **Partly implemented (M5 slice v1).** `aqelith patch` implements §3 and §4 for seven ops, with function names as targets (§8). Prototype P1 ([../../prototypes/stable-ids-patch/README.md](../../prototypes/stable-ids-patch/README.md)) tested the precondition and rejection rules in isolation.
 
 ## 1. Principle
 
@@ -55,13 +55,13 @@ Step 5 and 6 are the lesson from the Zerolang audit: its patch path accepted typ
 
 ## 8. Implemented slice (M5, v1)
 
-Implemented in `compiler/src/patch.rs` and the `aqelith patch <file> <patch.json> [--dry-run]` command. Tests: `compiler/tests/patch.rs` (16).
+Implemented in `compiler/src/patch.rs` and the `aqelith patch <file> <patch.json> [--dry-run]` command. Tests: `compiler/tests/patch.rs` (24).
 
 - **Targets** are function names. Persistent ids (ADR-0004) are not implemented in the compiler; a name that is not a function is rejected as `PAT004`.
 - **Base** is `graph:` plus FNV-1a 64 over the canonical text. It detects staleness, not tampering. Spacing in the source does not change it.
-- **Ops**: `rename` (also rewrites callers), `set-return`, `add-effect`, `remove-effect`. Each carries an `expect` precondition checked in order against the program after the earlier ops.
+- **Ops**: `rename` (also rewrites callers), `set-return`, `add-effect`, `remove-effect`, `delete`, `replace` and `insert` at function level. `delete` and `replace` need `expect.hash`, the graph hash of the function's canonical text (`fn_hash`). `replace` and `insert` take one function definition as source text in `with`; it is parsed and then checked as part of the whole candidate. Each carries an `expect` precondition checked in order against the program after the earlier ops.
 - **Verdict**: the candidate is formatted and checked by the same `check_source` as a normal build, and must re-format to itself. A rejected patch writes nothing.
 - **Write**: temporary file in the same directory, then rename. A dry run writes nothing.
 - **Codes**: PAT001 malformed, PAT002 stale base, PAT003 precondition, PAT004 unknown target, PAT005 candidate fails the checker, PAT006 source does not parse.
-- **Not implemented**: `replace`, `insert`, `delete`, `set-field`, persistent ids, deterministic repair, graph hash in the other responses (only in `patch` responses).
+- **Not implemented**: `set-field`, statement or expression level edits, persistent ids, deterministic repair, graph hash in the other responses (only in `patch` responses).
 - **Evidence**: mutation checks on a scratch copy. Removing the full-checker step fails 4 tests. Removing the base guard fails 3 tests.

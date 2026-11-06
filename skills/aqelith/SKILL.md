@@ -1,11 +1,11 @@
 ---
 name: aqelith
-description: Work with AQELITH v0 source files using the aqelith CLI: check, format, query, and explain diagnostics. Use when editing .aq files or when an agent needs structured compiler output. Covers only what v0 implements.
+description: Work with AQELITH v0 source files using the aqelith CLI or its MCP server: check, format, query, explain diagnostics, and apply semantic patches with preconditions. Use when editing .aq files or when an agent needs structured compiler output. Covers only what v0 implements.
 ---
 
 # AQELITH v0 (agent reference)
 
-Status: **v0 subset.** Only what is listed here works. Anything else is a compile error, not a silent fallback. Source of truth: `compiler/`. The patch slice implements only the four ops listed below. This file is checked by `compiler/tests/skill.rs` against the real diagnostic codes.
+Status: **v0 subset.** Only what is listed here works. Anything else is a compile error, not a silent fallback. Source of truth: `compiler/`. The patch slice implements the seven ops listed below. This file is checked by `compiler/tests/skill.rs` against the real diagnostic codes.
 
 ## Commands
 
@@ -52,16 +52,20 @@ A patch is a JSON document. The compiler decides whether it applies; a rejected 
   {"op":"rename","target":"add1","expect":{"name":"add1"},"to":"inc"},
   {"op":"set-return","target":"main","expect":{"ret":"i32"},"to":"bool"},
   {"op":"add-effect","target":"main","expect":{"uses":["io"]},"to":"net"},
-  {"op":"remove-effect","target":"main","expect":{"uses":["io","net"]},"to":"net"}
+  {"op":"remove-effect","target":"main","expect":{"uses":["io","net"]},"to":"net"},
+  {"op":"delete","target":"unused","expect":{"hash":"graph:<hash of unused>"}},
+  {"op":"insert","target":"main","with":"fn zero() -> i32 {\n    0\n}\n"}
 ]}
 ```
 
 - `base` is the graph hash from the current file. Read it from a rejection's `expected` field, or compute it by re-querying. It is computed over the canonical form, so spacing does not change it.
 - `target` is a function name. Each `expect` must hold for the current program at the moment that op runs; ops run in order.
 - `rename` also updates every call to that function. `add-effect` and `remove-effect` take effect names from the fixed core set.
+- Each op is checked by the full checker on the final candidate, so deleting or renaming a function that a caller still uses is rejected as PAT005.
 - Ops are all-or-none. The candidate must pass the full checker and re-format to itself, or nothing is written.
 - Use `--dry-run` first. Exit codes: `0` accepted or dry-run, `1` rejected, `2` usage or I/O error.
-- Not implemented: `replace`, `insert`, `delete`, `set-field`, persistent ids. A target that is not a function name is rejected as PAT004.
+- `delete` removes a function when `expect.hash` matches it. `replace` swaps a function for the one in `with` when `expect.hash` matches. `insert` places the function in `with` right after `target`. `with` must hold exactly one function definition. The hash is the graph hash of that function's canonical text; read it from a PAT003 rejection or from a re-query.
+- Not implemented: `set-field` and persistent ids. A target that is not a function name is rejected as PAT004.
 
 ## MCP server
 

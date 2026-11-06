@@ -6,8 +6,8 @@
 //! Nothing is written here; the CLI writes the candidate atomically when the patch is not a dry run.
 //!
 //! Limits of this slice: targets are function names, not persistent ids (ADR-0004 is not
-//! implemented in the compiler). Implemented ops: rename, set-return, add-effect, remove-effect.
-//! replace, insert, delete and set-field are not implemented.
+//! implemented in the compiler). Implemented ops: rename, set-return, add-effect, remove-effect,
+//! delete, replace and insert (function level). set-field and statement-level edits are not implemented.
 
 use std::path::Path;
 
@@ -34,6 +34,12 @@ pub enum Op {
     SetReturn { target: String, expect: Ty, to: Ty },
     AddEffect { target: String, expect: Vec<String>, to: String },
     RemoveEffect { target: String, expect: Vec<String>, to: String },
+    /// Removes the function named `target` when its content hash is `expect`.
+    Delete { target: String, expect: String },
+    /// Replaces the function named `target` when its content hash is `expect`.
+    Replace { target: String, expect: String, with: FnDef },
+    /// Inserts `with` right after the function named `target` (the anchor).
+    Insert { target: String, with: FnDef },
 }
 
 impl Op {
@@ -42,9 +48,29 @@ impl Op {
             Op::Rename { target, .. }
             | Op::SetReturn { target, .. }
             | Op::AddEffect { target, .. }
-            | Op::RemoveEffect { target, .. } => target,
+            | Op::RemoveEffect { target, .. }
+            | Op::Delete { target, .. }
+            | Op::Replace { target, .. }
+            | Op::Insert { target, .. } => target,
         }
     }
+}
+
+/// Content hash of one function: the graph hash of its canonical text on its own.
+/// Used as the precondition of delete and replace (ADR-0004 gives the intent; the compiler has no ids yet).
+pub fn fn_hash(f: &FnDef) -> String {
+    graph_hash(&format::format_module(&Module { name: String::new(), items: vec![f.clone()] }))
+}
+
+/// Parses the text of one function definition for `with`. Anything but exactly one function is malformed.
+fn parse_fn_source(i: usize, text: &str) -> Result<FnDef, Fail> {
+    let module = parser::parse(&format!("module m\n{text}"))
+        .map_err(|d| malformed(Some(i), format!("'with' is not a valid function: {}", d.message)))?;
+    let mut items = module.items;
+    if items.len() != 1 {
+        return Err(malformed(Some(i), "'with' must hold exactly one function"));
+    }
+    Ok(items.remove(0))
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -137,7 +163,20 @@ fn parse_op(i: usize, j: &Json) -> Result<Op, Fail> {
     let at = |msg: &str| malformed(Some(i), msg.to_string());
     let kind = field(j, "op").ok_or_else(|| at("op must be a string"))?;
     let target = field(j, "target").ok_or_else(|| at("target must be a function name"))?.to_string();
-    let expect = j.get("expect").ok_or_else(|| at("expect is required"))?;
+    let no_expect = Json::Obj(Vec::new());
+    let expect = j.get("expect").unwrap_or(&no_expect);
+    if matches!(kind, "delete" | "replace") {
+        let hash = field(expect, "hash").ok_or_else(|| at("expect.hash must be a string"))?.to_string();
+        if kind == "delete" {
+            return Ok(Op::Delete { target, expect: hash });
+        }
+        let with = parse_fn_source(i, field(j, "with").ok_or_else(|| at("with must be a function source string"))?)?;
+        return Ok(Op::Replace { target, expect: hash, with });
+    }
+    if kind == "insert" {
+        let with = parse_fn_source(i, field(j, "with").ok_or_else(|| at("with must be a function source string"))?)?;
+        return Ok(Op::Insert { target, with });
+    }
     let to = field(j, "to").ok_or_else(|| at("to must be a string"))?;
     let effects = |key: &str| -> Result<Vec<String>, Fail> {
         let arr = expect.get(key).and_then(Json::as_array).ok_or_else(|| at("expect.uses must be an array"))?;
@@ -207,6 +246,7 @@ pub fn apply(src: &str, patch_text: &str) -> Result<Accepted, Fail> {
     for op in &ops {
         let name = match op {
             Op::Rename { to, .. } => to.clone(),
+            Op::Replace { with, .. } | Op::Insert { with, .. } => with.name.clone(),
             other => other.target().to_string(),
         };
         if !touched.contains(&name) {
@@ -237,6 +277,17 @@ fn apply_op(m: &mut Module, op: &Op) -> Result<(), Fail> {
                 return Err(mismatch(current.name(), expect.name()));
             }
             m.items[idx].ret = *to;
+        }
+        Op::Delete { expect, .. } => {
+            precondition(&fn_hash(&m.items[idx]), expect)?;
+            m.items.remove(idx);
+        }
+        Op::Replace { expect, with, .. } => {
+            precondition(&fn_hash(&m.items[idx]), expect)?;
+            m.items[idx] = with.clone();
+        }
+        Op::Insert { with, .. } => {
+            m.items.insert(idx + 1, with.clone());
         }
         Op::AddEffect { expect, to, .. } => {
             let uses = &mut m.items[idx].uses;
