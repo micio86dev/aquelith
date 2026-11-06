@@ -7,7 +7,7 @@
 //!
 //! Targets are function names, or `id:<hex>` when an id index is given (ids.rs; function level only,
 //! node-level ids are not built). Implemented ops: rename, set-return, add-effect, remove-effect,
-//! delete, replace and insert (function level). set-field and statement-level edits are not implemented.
+//! delete, replace and insert (function level), and set-param-type. Expression-level edits are not implemented.
 
 use std::path::Path;
 
@@ -41,6 +41,8 @@ pub enum Op {
     Replace { target: String, expect: String, with: FnDef },
     /// Inserts `with` right after the function named `target` (the anchor).
     Insert { target: String, with: FnDef },
+    /// Changes the type of parameter `param` of `target`, when its current type is `expect`.
+    SetParamType { target: String, param: String, expect: Ty, to: Ty },
 }
 
 impl Op {
@@ -52,7 +54,8 @@ impl Op {
             | Op::RemoveEffect { target, .. }
             | Op::Delete { target, .. }
             | Op::Replace { target, .. }
-            | Op::Insert { target, .. } => target,
+            | Op::Insert { target, .. }
+            | Op::SetParamType { target, .. } => target,
         }
     }
 
@@ -64,7 +67,8 @@ impl Op {
             | Op::RemoveEffect { target, .. }
             | Op::Delete { target, .. }
             | Op::Replace { target, .. }
-            | Op::Insert { target, .. } => target,
+            | Op::Insert { target, .. }
+            | Op::SetParamType { target, .. } => target,
         }
     }
 }
@@ -215,6 +219,12 @@ fn parse_op(i: usize, j: &Json) -> Result<Op, Fail> {
             Ok(Op::SetReturn { target, expect: old, to: new })
         }
         "add-effect" => Ok(Op::AddEffect { target, expect: effects("uses")?, to: effect_name()? }),
+        "set-param-type" => {
+            let param = field(expect, "param").ok_or_else(|| at("expect.param must be a string"))?.to_string();
+            let old = field(expect, "type").and_then(Ty::from_name).ok_or_else(|| at("expect.type must be a type"))?;
+            let new = Ty::from_name(to).ok_or_else(|| at(&format!("unknown type '{to}'")))?;
+            Ok(Op::SetParamType { target, param, expect: old, to: new })
+        }
         "remove-effect" => Ok(Op::RemoveEffect { target, expect: effects("uses")?, to: effect_name()? }),
         other => Err(at(&format!("unknown op '{other}'"))),
     }
@@ -335,6 +345,15 @@ fn apply_op(m: &mut Module, op: &Op) -> Result<(), Fail> {
         }
         Op::Insert { with, .. } => {
             m.items.insert(idx + 1, with.clone());
+        }
+        Op::SetParamType { param, expect, to, .. } => {
+            let Some(p) = m.items[idx].params.iter_mut().find(|p| p.name == *param) else {
+                return Err(reject("PAT003", "precondition", format!("no parameter named '{param}'")));
+            };
+            if p.ty != *expect {
+                return Err(mismatch(p.ty.name(), expect.name()));
+            }
+            p.ty = *to;
         }
         Op::AddEffect { expect, to, .. } => {
             let uses = &mut m.items[idx].uses;

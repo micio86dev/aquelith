@@ -11,6 +11,7 @@ pub mod mcp;
 pub mod parser;
 pub mod patch;
 pub mod query;
+pub mod repair;
 
 pub use diag::Diagnostic;
 

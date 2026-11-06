@@ -346,3 +346,24 @@ fn insert_rejects_an_unknown_anchor_and_a_duplicate_name() {
 fn json_text(s: &str) -> String {
     format!("\"{}\"", s.replace('\\', "\\\\").replace('"', "\\\"").replace('\n', "\\n"))
 }
+
+#[test]
+fn set_param_type_changes_one_parameter_when_its_type_matches() {
+    // The body does not use x, so the new type cannot break it.
+    let src = "module demo\n\nfn konst(x: i32) -> i32 {\n    7\n}\n";
+    let good = doc(&base_of(src), r#"{"op":"set-param-type","target":"konst","expect":{"param":"x","type":"i32"},"to":"u32"}"#);
+    let accepted = apply(src, &good).expect("the parameter type can change");
+    assert!(accepted.text.contains("fn konst(x: u32) -> i32"), "{}", accepted.text);
+
+    let stale = doc(&base_of(src), r#"{"op":"set-param-type","target":"konst","expect":{"param":"x","type":"bool"},"to":"u32"}"#);
+    let r = rejected(src, &stale);
+    assert_eq!((r.code, r.expected.as_deref()), ("PAT003", Some("bool")));
+
+    // A body that uses the parameter with another type is rejected by the checker.
+    let used = "module demo\n\nfn add1(x: i32) -> i32 {\n    x + 1\n}\n";
+    let breaks = doc(&base_of(used), r#"{"op":"set-param-type","target":"add1","expect":{"param":"x","type":"i32"},"to":"u32"}"#);
+    assert_eq!(rejected(used, &breaks).code, "PAT005");
+
+    let unknown = doc(&base_of(src), r#"{"op":"set-param-type","target":"konst","expect":{"param":"y","type":"i32"},"to":"u32"}"#);
+    assert_eq!(rejected(src, &unknown).code, "PAT003");
+}

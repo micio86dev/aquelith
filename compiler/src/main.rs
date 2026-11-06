@@ -3,7 +3,7 @@
 use std::process::ExitCode;
 
 use aqelith::ids::{self, IdIndex};
-use aqelith::{check_source, diag, parser, patch, query};
+use aqelith::{check_source, diag, parser, patch, query, repair};
 
 const USAGE: &str = "usage:
   aqelith check <file> [--json]
@@ -11,6 +11,7 @@ const USAGE: &str = "usage:
   aqelith query <file> <function>
   aqelith patch <file> <patch.json> [--dry-run]
   aqelith ids <file> [--write]
+  aqelith repair <file>
   aqelith explain <CODE>";
 
 fn main() -> ExitCode {
@@ -25,6 +26,7 @@ fn main() -> ExitCode {
         ["query", file, name] => query_cmd(file, name),
         ["patch", file, doc] => patch_cmd(file, doc, flags.contains(&"--dry-run")),
         ["ids", file] => ids_cmd(file, write),
+        ["repair", file] => repair_cmd(file),
         ["explain", code] => explain(code),
         _ => {
             eprintln!("{USAGE}");
@@ -221,4 +223,26 @@ fn ids_cmd(file: &str, write: bool) -> ExitCode {
         }
     }
     ExitCode::SUCCESS
+}
+
+/// Prints a patch that adds the effects calls require (`aqelith patch` applies it), or a clean status.
+fn repair_cmd(file: &str) -> ExitCode {
+    let src = match load(file) {
+        Ok(s) => s,
+        Err(code) => return code,
+    };
+    match repair::propose(&src) {
+        Ok(None) => {
+            println!("{{\"api\":\"aqelith.patch.v1\",\"status\":\"clean\",\"ops\":[]}}");
+            ExitCode::SUCCESS
+        }
+        Ok(Some(doc)) => {
+            println!("{doc}");
+            ExitCode::SUCCESS
+        }
+        Err(e) => {
+            eprintln!("{file}: {e}");
+            ExitCode::from(1)
+        }
+    }
 }
