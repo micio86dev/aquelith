@@ -1,6 +1,6 @@
 # Mini site trial: a fresh Claude Code session writes a four-page site
 
-Date: 2026-11-06. Status: one run, one author (a fresh headless Claude Code session). This is a sample of one; it says nothing about the spread of results.
+Date: 2026-11-06. Status: first run plus nine further headless runs (six in two arms, three with the MCP route). Sample sizes are small; no conclusion about speed is drawn.
 
 ## Question
 
@@ -8,7 +8,7 @@ Can a fresh coding agent, given only the spec and the connection guide, produce 
 
 ## Setup
 
-- Spec: four pages (`/`, `/features`, `/pricing`, `/contact`), two of them with level-two headings, with links between pages. The spec text is kept outside the repository (scratch folder).
+- Spec: four pages (`/`, `/features`, `/pricing`, `/contact`), with links between pages. The `/features` page has two level-two headings. The first run (18.5 s, below) used an earlier copy of the spec with no stylesheet line, kept in a scratch folder. The six-run and MCP-route runs used `docs/testing/MINI_SITE_SPEC.md`, copied into the repository for reproducibility. The spec text is kept outside the repository (scratch folder).
 - Agent: `claude -p` (non-interactive), in an empty folder with a `CLAUDE.md` taken from `docs/guides/CONNECT_CODING_AGENTS.md` section 3. Tools allowed: file read and write, bash, and the five `aqelith` MCP tools. The MCP server and the skill were the user-level installation from the guide.
 - Build: `build_site` from `web/`, release profile.
 
@@ -59,7 +59,7 @@ How to read it:
 
 ## Six sessions: three per arm, same spec and harness
 
-Date: 2026-11-06. Each run was a fresh headless `claude -p` session in an empty folder, with the same spec (now asking for one stylesheet) and a per-arm `CLAUDE.md`. Runs were sequential. Raw logs stay outside the repository.
+Date: 2026-11-06. Each run was a fresh headless `claude -p` session in an empty folder, with the same spec (now asking for one stylesheet) and a per-arm `CLAUDE.md`. Runs were sequential. Raw logs stay outside the repository; the spec used is `docs/testing/MINI_SITE_SPEC.md`.
 
 | Arm | Run | Wall time (ms) | Tool calls | MCP calls | Terms found (of 10) | Broken links | HTML raw / gzip | CSS raw / gzip |
 |---|---|---|---|---|---|---|---|---|
@@ -74,11 +74,11 @@ Medians: AQELITH wall time 31.6 s, 8 tool calls. Plain HTML 40.9 s, 11 tool call
 
 What the numbers support, and what they do not:
 
-- **No measurable difference in authoring time at this size.** The AQELITH range is 31.4 to 38.8 s; the plain range is 28.9 to 52.2 s. The ranges overlap, so the protocol's rule says: no conclusion.
+- **No measurable difference in authoring time at this size.** The AQELITH range is 31.4 to 38.8 s; the plain range is 28.9 to 52.2 s. The ranges overlap, so the rule in `docs/testing/LANDING_SPEED_PROTOCOL.md` section 7 says: no conclusion.
 - **Both arms passed the content check** in all six runs.
 - **The AQELITH agents did not use the MCP tools.** All three called the `aqelith` command-line binary through Bash, because the `CLAUDE.md` gave its path. The MCP server was connected and available. The MCP route was therefore not exercised by these runs, and the guide should say so.
 - **The plain-HTML agents used a memory tool** from the user's global configuration in one run. That is not part of the plain arm's design, and it may have added calls.
-- **Output sizes differ in the stylesheet, not in the HTML.** The AQELITH build minifies its CSS, so its stylesheet is about a quarter of the plain one. The HTML is larger on the AQELITH side because of the CSP meta element (about 130 bytes per page).
+- **Output sizes differ most in the stylesheet.** The AQELITH build minifies its CSS: the raw median is 176 bytes against 843 for the plain stylesheet, about 21%. The HTML is also larger on the AQELITH side, 2195 against 2043 bytes raw, because of the CSP meta element (about 130 bytes per page).
 - Totals are not a speed claim. Three runs per arm is a small sample.
 
 ## Three sessions with the MCP route
@@ -95,4 +95,4 @@ The change worked: each run called `aqelith_check` and `aqelith_format` through 
 
 ## Next step
 
-Repeat the MCP route: a run whose `CLAUDE.md` tells the agent to call the `aqelith_check` tool, to see whether it uses the server rather than the binary. Then decide whether the gap in authoring time is larger than the spread between runs, with more runs.
+Measure the AQELITH build as a separate step, with its own repetitions, and run more sessions per arm, so that the spread between runs can be compared with the gap. The first run (18.5 s) used an earlier spec without a stylesheet line, so it is not directly comparable with the later six.
