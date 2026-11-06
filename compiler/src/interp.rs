@@ -12,6 +12,9 @@ use crate::ir::{Func, Inst, Program, Reg, Value};
 
 /// Most nested calls allowed in one run.
 pub const MAX_DEPTH: usize = 256;
+/// Most instructions executed in one run. Recursion depth alone does not bound the work: a function
+/// that calls itself twice takes exponential time before it reaches the depth limit.
+pub const MAX_STEPS: u64 = 1_000_000;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Val {
@@ -42,13 +45,16 @@ pub enum RunError {
         effect: String,
     },
     TooDeep,
+    /// The run executed more than `MAX_STEPS` instructions.
+    OutOfFuel,
     /// The IR is not well formed. A lowered, accepted program never reaches this.
     Malformed(String),
 }
 
 /// Runs the function `name` with `args`, and returns its value.
 pub fn run(p: &Program, name: &str, args: &[Val]) -> Result<Val, RunError> {
-    call(p, name, args, 0)
+    let mut steps = MAX_STEPS;
+    call(p, name, args, 0, &mut steps)
 }
 
 fn find<'a>(p: &'a Program, name: &str) -> Result<&'a Func, RunError> {
@@ -58,7 +64,13 @@ fn find<'a>(p: &'a Program, name: &str) -> Result<&'a Func, RunError> {
         .ok_or_else(|| RunError::NoSuchFunction(name.to_string()))
 }
 
-fn call(p: &Program, name: &str, args: &[Val], depth: usize) -> Result<Val, RunError> {
+fn call(
+    p: &Program,
+    name: &str,
+    args: &[Val],
+    depth: usize,
+    steps: &mut u64,
+) -> Result<Val, RunError> {
     if depth > MAX_DEPTH {
         return Err(RunError::TooDeep);
     }
@@ -86,7 +98,7 @@ fn call(p: &Program, name: &str, args: &[Val], depth: usize) -> Result<Val, RunE
         }
         set(&mut regs, Reg(i as u32), arg.clone())?;
     }
-    run_body(p, f, &mut regs, depth)
+    run_body(p, f, &mut regs, depth, steps)
 }
 
 fn run_body(
@@ -94,8 +106,13 @@ fn run_body(
     f: &Func,
     regs: &mut [Option<Val>],
     depth: usize,
+    steps: &mut u64,
 ) -> Result<Val, RunError> {
     for inst in &f.body {
+        if *steps == 0 {
+            return Err(RunError::OutOfFuel);
+        }
+        *steps -= 1;
         match inst {
             Inst::Const { dst, value, .. } => {
                 let v = match value {
@@ -144,7 +161,7 @@ fn run_body(
                     .iter()
                     .map(|r| get(regs, *r).cloned())
                     .collect::<Result<_, _>>()?;
-                let v = call(p, callee, &vals, depth + 1)?;
+                let v = call(p, callee, &vals, depth + 1, steps)?;
                 set(regs, *dst, v)?;
             }
             Inst::Ret(Some(r)) => return get(regs, *r).cloned(),

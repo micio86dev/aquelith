@@ -133,3 +133,20 @@ fn every_accepted_corpus_function_with_no_parameters_runs_without_panicking() {
         }
     }
 }
+
+#[test]
+fn exponential_work_at_low_depth_stops_at_the_step_budget() {
+    // Each level calls the next twice: 2^30 calls, but the depth is only 30, so the depth limit
+    // never fires. Only the step budget bounds this run.
+    let mut src = String::from("module m\n\n");
+    for i in 0..30 {
+        src.push_str(&format!(
+            "fn f{i}(a: i32) -> i32 {{\n    f{}(a) + f{}(a)\n}}\n\n",
+            i + 1,
+            i + 1
+        ));
+    }
+    src.push_str("fn f30(a: i32) -> i32 {\n    a\n}\n");
+    let p = program(&src);
+    assert_eq!(run(&p, "f0", &[Val::Int(0)]), Err(RunError::OutOfFuel));
+}
