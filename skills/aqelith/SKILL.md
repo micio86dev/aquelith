@@ -33,6 +33,7 @@ Exit codes: `0` success; `1` diagnostics or function not found; `2` usage or I/O
 - No comments (`//` is LEX003). Put documentation in `docs/`.
 - String literals (`"..."`, printable ASCII, no `"` or `\`) appear only in page items. No string values in functions, no closures, assignment, `?`, imports, generics or traits.
 - Page items (ADR-0015): `page <name> "<route>" { ... }` with exactly these statements, each ending in `;`: `title "..."` (once), `h1 "..."`, `h2 "..."`, `p "..."`, `link "label" "/route"`. A route is `/` or a lowercase path without trailing slash. Pages are content only; they carry no markup, and a backend renders them. The formatter prints functions first, then pages.
+  Fragment: `page home "/" { title "Notes"; h1 "Notes"; p "Text."; link "Next" "/next"; }`. A link must name a route of a page in the same module, so this fragment alone fails with PAGE005 until a page `"/next"` exists. The header is `page <name> "<route>"`: the name comes first, then the route. The link is `link "<label>" "<route>";`, label first. `page "/" {` (no name) and `link "/next" "Next";` (reversed) are rejected.
 
 ## Diagnostic codes
 
@@ -76,7 +77,7 @@ A patch is a JSON document. The compiler decides whether it applies; a rejected 
 
 ## MCP server
 
-`aqelith-mcp` speaks MCP protocol 2024-11-05 over stdin and stdout, one JSON-RPC message per line. With `--http 127.0.0.1:PORT` it serves `POST /mcp` instead; only loopback addresses are accepted, and a request whose `Host` header is not localhost gets 403. Every tool takes source text as an argument. `aqelith_patch` returns a candidate with `status` "candidate" and never writes; a rejected patch is returned with `isError` true and its PAT code. To write, the agent passes the candidate to `aqelith patch` or `aqelith fmt --write`.
+`aqelith-mcp` speaks MCP protocol 2024-11-05 over stdin and stdout, one JSON-RPC message per line. With `--http 127.0.0.1:PORT` it serves `POST /mcp` instead; only loopback addresses are accepted, and a request whose `Host` header is not localhost gets 403. Every tool except `aqelith_explain` takes source text as an argument; `aqelith_explain` takes a diagnostic `code` (for example `TYP001`). `aqelith_patch` returns a candidate with `status` "candidate" and never writes; a rejected patch is returned with `isError` true and its PAT code. To write, the agent passes the candidate to `aqelith patch` or `aqelith fmt --write`.
 
 ## Workflow for an agent
 

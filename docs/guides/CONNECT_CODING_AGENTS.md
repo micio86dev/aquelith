@@ -57,6 +57,57 @@ codex mcp add aqelith -- "<repo>/compiler/target/release/aqelith-mcp"
 
 Check it with `codex mcp list`. Codex reads `AGENTS.md`, so add the same block as in section 3 to the project's `AGENTS.md` (or to `~/.codex/AGENTS.md` for all projects), pointing to the same `SKILL.md` path. This repository's own `AGENTS.md` is the engineering contract for the compiler, not an agent brief for writing AQELITH programs; keep the two apart.
 
+## 4b. Write a first page file (read before writing any .aq)
+
+The grammar of a page is strict. This file checks and builds (verified 2026-11-06):
+
+```aq
+module notes
+
+page home "/" {
+    title "Release notes";
+    h1 "Release notes";
+    p "Every release is listed here, newest first.";
+    link "Version 1.0" "/v1";
+}
+
+page v1 "/v1" {
+    title "Version 1.0";
+    h1 "Version 1.0";
+    h2 "What changed";
+    p "The first stable release.";
+    link "All releases" "/";
+}
+```
+
+Rules that a first attempt usually gets wrong:
+
+- A page header is `page <name> "<route>" {`. The name is a plain identifier (`home`), then the route as a string. `page "/" {` is rejected (PAR001).
+- Every statement ends with `;`, including `title`, `h1`, `h2`, `p` and `link`.
+- Link order is `link "<label>" "<route>";`. The label comes first. `link "/v1" "Version 1.0";` is rejected (PAGE003).
+- Text is printable ASCII without `"` or `\`.
+
+Check, then build. Run the commands from the directories shown (the build command uses the `web` crate):
+
+```sh
+"<repo>/compiler/target/release/aqelith" check notes.aq
+cd "<repo>/web" && cargo run -q --example build_site -- /absolute/path/notes.aq /absolute/path/out
+```
+
+Planned, not built yet (feature `web-dev-loop`, task T3): a live preview that reloads on each save. Until it exists, use `build_site` and reopen the file.
+
+```text
+planned: cd web && cargo run -q --example dev_site -- <file.aq> <style.css> --port 8080
+```
+
+The planned behaviour, for reference:
+
+```sh
+cd "<repo>/web" && cargo run -q --example dev_site -- /absolute/path/notes.aq /absolute/path/style.css --port 8080
+```
+
+Open `http://127.0.0.1:8080/` in a browser. The planned behaviour is a reload after each save; a source error would appear as a banner with the diagnostic, and the last good page would stay on screen.
+
 ## 5. What the agent gets
 
 | Tool | Input | Use |
