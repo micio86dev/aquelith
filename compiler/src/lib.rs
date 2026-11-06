@@ -5,6 +5,7 @@ pub mod check;
 pub mod diag;
 pub mod format;
 pub mod ids;
+pub mod interp;
 pub mod ir;
 pub mod json;
 pub mod lexer;
