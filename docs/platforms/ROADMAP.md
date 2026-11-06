@@ -11,6 +11,7 @@ Status: **Proposed.** Each target below starts only when its feature document is
 | Server, Linux x86_64 | Minimal. Conformance passed 5 of 5 under emulation (`linux/amd64` container); native run pending | [SERVER_CONFORMANCE.md](SERVER_CONFORMANCE.md) |
 | Desktop, macOS arm64 | Started: static view and route switch done; click path unverified; D2 partly done. See [DESKTOP_MACOS.md](DESKTOP_MACOS.md) | `desktop/macos/check.sh` |
 | Desktop, Linux and Windows | No backend | none |
+| Mobile, iOS | Proposed. Blocked: full Xcode not installed | [MOBILE_IOS.md](MOBILE_IOS.md) |
 | Mobile (iOS, Android) | No backend | none |
 | Embedded and constrained | No backend | none |
 | Other operating systems | No backend | none |
@@ -27,7 +28,7 @@ Status: **Proposed.** Each target below starts only when its feature document is
 
 ## Decisions the owner must make
 
-- The first mobile operating system (iOS or Android). The first desktop operating system is macOS arm64, chosen by the assistant under the owner's instruction to decide ([DESKTOP_MACOS.md](DESKTOP_MACOS.md)).
+- Installing full Xcode for the iOS target ([MOBILE_IOS.md](MOBILE_IOS.md)). The first mobile operating system is iOS, chosen by the assistant; Android is later. The first desktop operating system is macOS arm64 ([DESKTOP_MACOS.md](DESKTOP_MACOS.md)).
 - The first mobile operating system (iOS or Android).
 - Whether to provide a Linux x86_64 runner, and where.
 - The memory model for the first non-web target (decision D3 in SERVER_LINUX_PLAN.md).
