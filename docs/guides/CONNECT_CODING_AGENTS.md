@@ -94,19 +94,13 @@ Check, then build. Run the commands from the directories shown (the build comman
 cd "<repo>/web" && cargo run -q --example build_site -- /absolute/path/notes.aq /absolute/path/out
 ```
 
-Planned, not built yet (feature `web-dev-loop`, task T3): a live preview that reloads on each save. Until it exists, use `build_site` and reopen the file.
-
-```text
-planned: cd web && cargo run -q --example dev_site -- <file.aq> <style.css> --port 8080
-```
-
-The planned behaviour, for reference:
+Live preview with reload on each save (work item `web-dev-loop` in `odd/tasks/`; checked in real Chrome on 2026-11-06, and covered by the server and client tests in `web/tests/dev_server.rs` and `web/tests/reload.test.mjs`):
 
 ```sh
 cd "<repo>/web" && cargo run -q --example dev_site -- /absolute/path/notes.aq /absolute/path/style.css --port 8080
 ```
 
-Open `http://127.0.0.1:8080/` in a browser. The planned behaviour is a reload after each save; a source error would appear as a banner with the diagnostic, and the last good page would stay on screen.
+Open `http://127.0.0.1:8080/` in a browser and leave it open. After each save of the `.aq` or the `.css` file, the page reloads by itself. The delay is set by the constants in `web/src/dev.rs`: the file is polled every 250 ms, and a rebuild waits until the content has been unchanged for 100 ms (up to 20 such waits). So the reload comes between about 0.1 s and 2.3 s after the last write, plus the build time. This is the bound from the constants; it has not been measured on a reference machine. A source that does not check shows the diagnostic in a banner at the top, and the last good page stays under it; the next valid save reloads the page and removes the banner. The server listens on 127.0.0.1 only and answers only `GET` for its own host name.
 
 ## 5. What the agent gets
 
