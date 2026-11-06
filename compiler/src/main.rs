@@ -12,7 +12,8 @@ const USAGE: &str = "usage:
   aqelith patch <file> <patch.json> [--dry-run]
   aqelith ids <file> [--write]
   aqelith repair <file>
-  aqelith explain <CODE>";
+  aqelith explain <CODE>
+  aqelith view <file>";
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -36,6 +37,7 @@ fn main() -> ExitCode {
         ["ids", file] => ids_cmd(file, write),
         ["repair", file] => repair_cmd(file),
         ["explain", code] => explain(code),
+        ["view", file] => view_cmd(file),
         _ => {
             eprintln!("{USAGE}");
             ExitCode::from(2)
@@ -258,6 +260,29 @@ fn repair_cmd(file: &str) -> ExitCode {
         }
         Err(e) => {
             eprintln!("{file}: {e}");
+            ExitCode::from(1)
+        }
+    }
+}
+
+/// `aqelith view <file>`: the JSON of a checked module's pages, for a host platform.
+fn view_cmd(file: &str) -> ExitCode {
+    let src = match std::fs::read_to_string(file) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("{file}: {e}");
+            return ExitCode::from(2);
+        }
+    };
+    match aqelith::view::view_json(&src) {
+        Ok(json) => {
+            println!("{json}");
+            ExitCode::SUCCESS
+        }
+        Err(diags) => {
+            for d in diags {
+                eprintln!("{file}:{}:{}: {}: {}", d.line, d.column, d.code, d.message);
+            }
             ExitCode::from(1)
         }
     }

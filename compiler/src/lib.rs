@@ -16,6 +16,7 @@ pub mod patch;
 pub mod query;
 pub mod repair;
 pub mod serve;
+pub mod view;
 
 pub use diag::Diagnostic;
 

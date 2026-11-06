@@ -9,7 +9,8 @@ Status: **Proposed.** Each target below starts only when its feature document is
 | Web (browser), static pages | Built | `web/` tests, landing browser test |
 | Server, loopback HTTP, macOS arm64 | Minimal. C2 (loopback HTTP) passes; C1 passes on 4 corpus files, expected outputs pending owner review | `compiler/tests/serve.rs`, `conformance_server.rs`, [SERVER_CONFORMANCE.md](SERVER_CONFORMANCE.md) |
 | Server, Linux x86_64 | Minimal, not run | Needs a runner |
-| Desktop (macOS, Linux, Windows) | No backend | none |
+| Desktop, macOS arm64 | Started: D1 done (static view, link navigation), see [DESKTOP_MACOS.md](DESKTOP_MACOS.md) | `desktop/macos/check.sh` |
+| Desktop, Linux and Windows | No backend | none |
 | Mobile (iOS, Android) | No backend | none |
 | Embedded and constrained | No backend | none |
 | Other operating systems | No backend | none |

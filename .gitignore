@@ -9,3 +9,4 @@ web/examples/landing/site/
 
 # Local Engram memory config (tool state, not project content)
 .engram/
+desktop/macos/aqhost
