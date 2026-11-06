@@ -150,6 +150,7 @@ mod tests {
         let mut index = IdIndex::default();
         let m = Module {
             name: "m".into(),
+            records: vec![],
             items: vec![],
             pages: vec![],
         };

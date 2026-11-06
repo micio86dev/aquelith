@@ -62,7 +62,7 @@ fn analyze(src: &str, m: &Module) -> (Vec<Diagnostic>, Vec<Option<FnTypes>>) {
         );
     }
     for f in &m.items {
-        match check_fn(src, &sigs, f) {
+        match check_fn(src, &sigs, &m.records, f) {
             Ok(expr) => types.push(Some(FnTypes {
                 name: f.name.clone(),
                 expr,
@@ -80,6 +80,7 @@ fn analyze(src: &str, m: &Module) -> (Vec<Diagnostic>, Vec<Option<FnTypes>>) {
 struct Ctx<'a> {
     src: &'a str,
     sigs: &'a BTreeMap<String, Sig>,
+    records: &'a [RecordDef],
     uses: &'a [String],
     locals: Vec<(String, Ty)>,
     /// Recorded type of each expression that has been checked, by span.
@@ -89,6 +90,7 @@ struct Ctx<'a> {
 fn check_fn(
     src: &str,
     sigs: &BTreeMap<String, Sig>,
+    records: &[RecordDef],
     f: &FnDef,
 ) -> Result<BTreeMap<(usize, usize), Ty>, Diagnostic> {
     for (i, p) in f.params.iter().enumerate() {
@@ -105,6 +107,7 @@ fn check_fn(
     let mut cx = Ctx {
         src,
         sigs,
+        records,
         uses: &f.uses,
         locals: f.params.iter().map(|p| (p.name.clone(), p.ty)).collect(),
         types: RefCell::new(BTreeMap::new()),
@@ -151,7 +154,11 @@ impl Ctx<'_> {
             Some(x) if x != actual => Err(self.diag(
                 e,
                 "TYP001",
-                format!("expected {}, found {}", x.name(), actual.name()),
+                format!(
+                    "expected {}, found {}",
+                    x.type_name(self.records),
+                    actual.type_name(self.records)
+                ),
             )),
             _ => Ok(actual),
         }
@@ -226,6 +233,69 @@ impl Ctx<'_> {
                 self.want(e, expected, ty)
             }
             ExprKind::Group(inner) => self.expr(inner, expected),
+            ExprKind::Record { name, fields, .. } => {
+                let index = self
+                    .records
+                    .iter()
+                    .position(|r| r.name == *name)
+                    .ok_or_else(|| self.diag(e, "RES001", format!("unknown record '{name}'")))?;
+                let decl = &self.records[index];
+                let mut set: Vec<&str> = Vec::new();
+                for f in fields {
+                    let (_, fty) =
+                        decl.fields
+                            .iter()
+                            .find(|(n, _)| *n == f.name)
+                            .ok_or_else(|| {
+                                self.diag(
+                                    e,
+                                    "RES001",
+                                    format!("record '{name}' has no field '{}'", f.name),
+                                )
+                            })?;
+                    if set.contains(&f.name.as_str()) {
+                        return Err(self.diag(
+                            e,
+                            "DUP001",
+                            format!("field '{}' is set twice", f.name),
+                        ));
+                    }
+                    set.push(&f.name);
+                    self.expr(&f.value, Some(*fty))?;
+                }
+                if let Some((missing, _)) =
+                    decl.fields.iter().find(|(n, _)| !set.contains(&n.as_str()))
+                {
+                    return Err(self.diag(
+                        e,
+                        "TYP001",
+                        format!("record '{name}' is missing field '{missing}'"),
+                    ));
+                }
+                self.want(e, expected, Ty::Rec(index as u32))
+            }
+            ExprKind::Field { base, name, .. } => {
+                let bt = self.expr(base, None)?;
+                let Ty::Rec(index) = bt else {
+                    return Err(self.diag(
+                        e,
+                        "TYP001",
+                        format!(
+                            "field access needs a record, found {}",
+                            bt.type_name(self.records)
+                        ),
+                    ));
+                };
+                let decl = &self.records[index as usize];
+                let (_, fty) = decl.fields.iter().find(|(n, _)| n == name).ok_or_else(|| {
+                    self.diag(
+                        e,
+                        "RES001",
+                        format!("record '{}' has no field '{name}'", decl.name),
+                    )
+                })?;
+                self.want(e, expected, *fty)
+            }
             ExprKind::Call { callee, args } => {
                 let sig = self.sigs.get(callee).ok_or_else(|| {
                     self.diag(e, "RES001", format!("unknown function '{callee}'"))
@@ -257,7 +327,10 @@ impl Ctx<'_> {
             }
             ExprKind::Bin { op, lhs, rhs } => match op {
                 BinOp::Eq => {
-                    self.operands(lhs, rhs, None)?;
+                    let t = self.operands(lhs, rhs, None)?;
+                    if matches!(t, Ty::Rec(_)) {
+                        return Err(self.diag(e, "TYP001", "'==' is not defined on records"));
+                    }
                     self.want(e, expected, Ty::Bool)
                 }
                 BinOp::Add | BinOp::Sub | BinOp::Mul => {

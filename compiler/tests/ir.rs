@@ -82,6 +82,8 @@ fn count_exprs(m: &Module) -> usize {
             ExprKind::Group(inner) => expr(inner),
             ExprKind::Call { args, .. } => args.iter().map(expr).sum(),
             ExprKind::Bin { lhs, rhs, .. } => expr(lhs) + expr(rhs),
+            ExprKind::Record { fields, .. } => fields.iter().map(|f| expr(&f.value)).sum(),
+            ExprKind::Field { base, .. } => expr(base),
         }
     }
     fn block(b: &Block) -> usize {

@@ -106,8 +106,11 @@ impl Op {
 
 /// Content hash of one function: the graph hash of its canonical text on its own.
 /// Used as the precondition of delete and replace; persistent ids (ids.rs) name the function.
-pub fn fn_hash(f: &FnDef) -> String {
+pub fn fn_hash(f: &FnDef, records: &[RecordDef]) -> String {
+    // The record table is part of the text: a parameter of type Request and one of type Response
+    // must not hash the same.
     graph_hash(&format::format_module(&Module {
+        records: records.to_vec(),
         name: String::new(),
         items: vec![f.clone()],
         pages: Vec::new(),
@@ -482,11 +485,11 @@ fn apply_op(m: &mut Module, op: &Op) -> Result<(), Fail> {
             m.items[idx].ret = *to;
         }
         Op::Delete { expect, .. } => {
-            precondition(&fn_hash(&m.items[idx]), expect)?;
+            precondition(&fn_hash(&m.items[idx], &m.records), expect)?;
             m.items.remove(idx);
         }
         Op::Replace { expect, with, .. } => {
-            precondition(&fn_hash(&m.items[idx]), expect)?;
+            precondition(&fn_hash(&m.items[idx], &m.records), expect)?;
             m.items[idx] = with.clone();
         }
         Op::Insert { with, .. } => {
@@ -589,6 +592,12 @@ fn rename_calls_expr(e: &mut Expr, old: &str, new: &str) {
             rename_calls_expr(rhs, old, new);
         }
         ExprKind::Group(inner) => rename_calls_expr(inner, old, new),
+        ExprKind::Field { base, .. } => rename_calls_expr(base, old, new),
+        ExprKind::Record { fields, .. } => {
+            for f in fields {
+                rename_calls_expr(&mut f.value, old, new);
+            }
+        }
         ExprKind::Int(_) | ExprKind::Bool(_) | ExprKind::Str(_) | ExprKind::Ident(_) => {}
     }
 }
@@ -602,7 +611,8 @@ pub fn write_atomic(path: &Path, text: &str) -> std::io::Result<()> {
     let name = path
         .file_name()
         .map_or_else(|| "out".to_string(), |n| n.to_string_lossy().into_owned());
-    // The temporary name carries the time, so it is not guessable; a name already taken is skipped.
+    // Each candidate name carries the time and the process id, and a name already taken is skipped.
+    // The file is created with create_new, so an existing path, even a planted link, is never followed.
     let nanos = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map_or(0, |d| d.as_nanos());

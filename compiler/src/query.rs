@@ -18,6 +18,12 @@ fn collect_calls(e: &Expr, out: &mut BTreeSet<String>) {
             collect_calls(rhs, out);
         }
         ExprKind::Group(inner) => collect_calls(inner, out),
+        ExprKind::Field { base, .. } => collect_calls(base, out),
+        ExprKind::Record { fields, .. } => {
+            for f in fields {
+                collect_calls(&f.value, out);
+            }
+        }
         ExprKind::Int(_) | ExprKind::Bool(_) | ExprKind::Str(_) | ExprKind::Ident(_) => {}
     }
 }
@@ -53,7 +59,7 @@ pub fn query_fn(m: &Module, name: &str) -> Option<String> {
             format!(
                 "{{\"name\":{},\"type\":{}}}",
                 jstr(&p.name),
-                jstr(p.ty.name())
+                jstr(&p.ty.type_name(&m.records))
             )
         })
         .collect();
@@ -62,7 +68,7 @@ pub fn query_fn(m: &Module, name: &str) -> Option<String> {
         "{{\"name\":{},\"params\":[{}],\"return\":{},\"uses\":[{}],\"calls\":[{}],\"called_by\":[{}]}}",
         jstr(&f.name),
         params.join(","),
-        jstr(f.ret.name()),
+        jstr(&f.ret.type_name(&m.records)),
         list(&f.uses),
         list(&callees),
         list(&callers),

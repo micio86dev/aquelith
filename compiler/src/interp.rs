@@ -21,6 +21,11 @@ pub enum Val {
     Int(i64),
     Bool(bool),
     Str(String),
+    /// A record value: the index of its type, and its fields in declaration order (S2).
+    Rec {
+        ty: u32,
+        fields: Vec<Val>,
+    },
     Unit,
 }
 
@@ -164,6 +169,45 @@ fn run_body(
                 let v = call(p, callee, &vals, depth + 1, steps)?;
                 set(regs, *dst, v)?;
             }
+            Inst::MakeRecord { dst, ty, fields } => {
+                let values: Vec<Val> = fields
+                    .iter()
+                    .map(|r| get(regs, *r).cloned())
+                    .collect::<Result<_, _>>()?;
+                let index = match ty {
+                    Ty::Rec(i) => *i,
+                    _ => {
+                        return Err(RunError::Malformed(format!(
+                            "{}: record without a record type",
+                            f.name
+                        )))
+                    }
+                };
+                set(
+                    regs,
+                    *dst,
+                    Val::Rec {
+                        ty: index,
+                        fields: values,
+                    },
+                )?;
+            }
+            Inst::GetField {
+                dst, base, index, ..
+            } => {
+                let value = match get(regs, *base)? {
+                    Val::Rec { fields, .. } => fields.get(*index).cloned().ok_or_else(|| {
+                        RunError::Malformed(format!("{}: field index out of range", f.name))
+                    })?,
+                    _ => {
+                        return Err(RunError::Malformed(format!(
+                            "{}: field of a non-record",
+                            f.name
+                        )))
+                    }
+                };
+                set(regs, *dst, value)?;
+            }
             Inst::Ret(Some(r)) => return get(regs, *r).cloned(),
             Inst::Ret(None) => return Ok(Val::Unit),
         }
@@ -207,6 +251,7 @@ fn fits(v: &Val, ty: Ty) -> bool {
         (Val::Int(i), Ty::I32 | Ty::U32) => in_range(*i, ty),
         (Val::Bool(_), Ty::Bool) => true,
         (Val::Str(_), Ty::Str) => true,
+        (Val::Rec { ty: v, .. }, Ty::Rec(t)) => *v == t,
         (Val::Unit, Ty::Unit) => true,
         _ => false,
     }

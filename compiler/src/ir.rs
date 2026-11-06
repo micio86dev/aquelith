@@ -8,7 +8,7 @@
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
 
-use crate::ast::{BinOp, Expr, ExprKind, FnDef, Module, Stmt, Ty};
+use crate::ast::{BinOp, Expr, ExprKind, FnDef, Module, RecordDef, Stmt, Ty};
 use crate::check::{type_module, FnTypes};
 use crate::diag::Diagnostic;
 
@@ -49,6 +49,15 @@ pub enum Inst {
         callee: String,
         args: Vec<Reg>,
     },
+    /// `dst = Record { ... }`: the fields in declaration order, one register each (S2).
+    MakeRecord { dst: Reg, ty: Ty, fields: Vec<Reg> },
+    /// `dst = base.<index>`: field `index` of the record in `base`, of type `ty` (S2).
+    GetField {
+        dst: Reg,
+        ty: Ty,
+        base: Reg,
+        index: usize,
+    },
     /// Return a value, or nothing for `unit`.
     Ret(Option<Reg>),
 }
@@ -66,6 +75,8 @@ pub struct Func {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Program {
+    /// Record types, indexed as `Ty::Rec` indexes them.
+    pub records: Vec<RecordDef>,
     pub funcs: Vec<Func>,
 }
 
@@ -77,6 +88,8 @@ pub enum LowerError {
     MissingType { start: usize, end: usize },
     /// A name the checker should have resolved is not bound. This is a compiler bug.
     Unbound { name: String },
+    /// A record or field the checker should have resolved is missing from the table. This is a compiler bug.
+    Inconsistent { what: String },
 }
 
 /// Lowers an accepted module to IR. A module with any diagnostic gives `Rejected`.
@@ -84,9 +97,12 @@ pub fn lower_module(src: &str, m: &Module) -> Result<Program, LowerError> {
     let types = type_module(src, m).map_err(LowerError::Rejected)?;
     let mut funcs = Vec::with_capacity(m.items.len());
     for (f, ft) in m.items.iter().zip(types.iter()) {
-        funcs.push(lower_fn(f, ft)?);
+        funcs.push(lower_fn(f, ft, &m.records)?);
     }
-    Ok(Program { funcs })
+    Ok(Program {
+        records: m.records.clone(),
+        funcs,
+    })
 }
 
 /// Parses and lowers source text. A parse error is reported as `Rejected`.
@@ -95,9 +111,10 @@ pub fn lower_source(src: &str) -> Result<Program, LowerError> {
     lower_module(src, &m)
 }
 
-fn lower_fn(f: &FnDef, ft: &FnTypes) -> Result<Func, LowerError> {
+fn lower_fn(f: &FnDef, ft: &FnTypes, records: &[RecordDef]) -> Result<Func, LowerError> {
     let mut lw = Lowering {
         types: &ft.expr,
+        records,
         regs: f.params.iter().map(|p| p.ty).collect(),
         body: Vec::new(),
         locals: f
@@ -137,6 +154,7 @@ fn lower_fn(f: &FnDef, ft: &FnTypes) -> Result<Func, LowerError> {
 
 struct Lowering<'a> {
     types: &'a BTreeMap<(usize, usize), Ty>,
+    records: &'a [RecordDef],
     regs: Vec<Ty>,
     body: Vec<Inst>,
     locals: Vec<(String, Reg)>,
@@ -192,6 +210,67 @@ impl Lowering<'_> {
                     dst,
                     ty: Ty::Str,
                     value: Value::Str(s.clone()),
+                });
+                Ok(dst)
+            }
+            ExprKind::Record { name, fields, .. } => {
+                let ty = self.ty_of(e)?;
+                let index = match ty {
+                    Ty::Rec(i) => i as usize,
+                    _ => {
+                        return Err(LowerError::Inconsistent {
+                            what: format!("record literal '{name}' has no record type"),
+                        })
+                    }
+                };
+                // Values are evaluated in the order they are written; the record holds them in
+                // declaration order.
+                let mut written: Vec<(usize, Reg)> = Vec::with_capacity(fields.len());
+                for f in fields {
+                    let pos = self.records[index]
+                        .fields
+                        .iter()
+                        .position(|(n, _)| *n == f.name)
+                        .ok_or_else(|| LowerError::Unbound {
+                            name: f.name.clone(),
+                        })?;
+                    written.push((pos, self.expr(&f.value)?));
+                }
+                let mut regs = vec![None; self.records[index].fields.len()];
+                for (pos, r) in written {
+                    regs[pos] = Some(r);
+                }
+                let fields: Vec<Reg> = regs
+                    .into_iter()
+                    .collect::<Option<Vec<Reg>>>()
+                    .ok_or_else(|| LowerError::Unbound { name: name.clone() })?;
+                let dst = self.fresh(ty);
+                self.body.push(Inst::MakeRecord { dst, ty, fields });
+                Ok(dst)
+            }
+            ExprKind::Field { base, name, .. } => {
+                let base_reg = self.expr(base)?;
+                let index = match self.ty_of(base)? {
+                    Ty::Rec(i) => self.records[i as usize]
+                        .fields
+                        .iter()
+                        .position(|(n, _)| n == name)
+                        .ok_or_else(|| LowerError::Inconsistent {
+                            what: format!("record has no field '{name}'"),
+                        })?,
+                    _ => {
+                        return Err(LowerError::Inconsistent {
+                            what: format!("field '{name}' read from a non-record"),
+                        })
+                    }
+                };
+                let ty = self.ty_of(e)?;
+                let dst = self.fresh(ty);
+                self.body.push(Inst::GetField {
+                    dst,
+                    ty,
+                    base: base_reg,
+                    index,
                 });
                 Ok(dst)
             }
@@ -260,7 +339,7 @@ impl Program {
                 .params
                 .iter()
                 .enumerate()
-                .map(|(i, t)| format!("r{i}: {}", t.name()))
+                .map(|(i, t)| format!("r{i}: {}", t.type_name(&self.records)))
                 .collect();
             let uses = if f.uses.is_empty() {
                 String::new()
@@ -272,7 +351,7 @@ impl Program {
                 "fn {}({}) -> {}{} {{",
                 f.name,
                 params.join(", "),
-                f.ret.name(),
+                f.ret.type_name(&self.records),
                 uses
             );
             for inst in &f.body {
@@ -283,7 +362,7 @@ impl Program {
                             Value::Bool(b) => b.to_string(),
                             Value::Str(s) => format!("\"{s}\""),
                         };
-                        format!("{}: {} = const {v}", reg(*dst), ty.name())
+                        format!("{}: {} = const {v}", reg(*dst), ty.type_name(&self.records))
                     }
                     Inst::Arith {
                         dst,
@@ -294,7 +373,7 @@ impl Program {
                     } => format!(
                         "{}: {} = {} {}, {}",
                         reg(*dst),
-                        ty.name(),
+                        ty.type_name(&self.records),
                         op_name(*op),
                         reg(*lhs),
                         reg(*rhs)
@@ -302,7 +381,7 @@ impl Program {
                     Inst::Equal { dst, ty, lhs, rhs } => format!(
                         "{}: bool = eq {} {}, {}",
                         reg(*dst),
-                        ty.name(),
+                        ty.type_name(&self.records),
                         reg(*lhs),
                         reg(*rhs)
                     ),
@@ -316,11 +395,31 @@ impl Program {
                         format!(
                             "{}: {} = call {callee}({})",
                             reg(*dst),
-                            ty.name(),
+                            ty.type_name(&self.records),
                             a.join(", ")
                         )
                     }
                     Inst::Ret(Some(r)) => format!("ret {}", reg(*r)),
+                    Inst::MakeRecord { dst, ty, fields } => {
+                        let parts: Vec<String> = fields.iter().map(|r| reg(*r)).collect();
+                        format!(
+                            "{}: {} = record {{ {} }}",
+                            reg(*dst),
+                            ty.type_name(&self.records),
+                            parts.join(", ")
+                        )
+                    }
+                    Inst::GetField {
+                        dst,
+                        ty,
+                        base,
+                        index,
+                    } => format!(
+                        "{}: {} = field {}.{index}",
+                        reg(*dst),
+                        ty.type_name(&self.records),
+                        reg(*base)
+                    ),
                     Inst::Ret(None) => "ret".to_string(),
                 };
                 let _ = writeln!(out, "  {line}");

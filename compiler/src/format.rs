@@ -2,12 +2,16 @@
 
 use crate::ast::*;
 
-/// Canonical order: the module header, then functions, then pages (ADR-0015).
+/// Canonical order: the module header, then records, then functions, then pages (ADR-0015, S2).
 pub fn format_module(m: &Module) -> String {
     let mut out = format!("module {}\n", m.name);
+    for r in &m.records {
+        out.push('\n');
+        out.push_str(&format_record(r, &m.records));
+    }
     for f in &m.items {
         out.push('\n');
-        out.push_str(&format_fn(f));
+        out.push_str(&format_fn(f, &m.records));
     }
     for p in &m.pages {
         out.push('\n');
@@ -35,15 +39,28 @@ fn format_page(p: &Page) -> String {
     out
 }
 
-fn format_fn(f: &FnDef) -> String {
+/// `record Name {` with one `field: type,` line per field, or `record Name {}` when it has none.
+fn format_record(r: &RecordDef, records: &[RecordDef]) -> String {
+    if r.fields.is_empty() {
+        return format!("record {} {{}}\n", r.name);
+    }
+    let mut out = format!("record {} {{\n", r.name);
+    for (name, ty) in &r.fields {
+        out.push_str(&format!("    {name}: {},\n", ty.type_name(records)));
+    }
+    out.push_str("}\n");
+    out
+}
+
+fn format_fn(f: &FnDef, records: &[RecordDef]) -> String {
     let params: Vec<String> = f
         .params
         .iter()
-        .map(|p| format!("{}: {}", p.name, p.ty.name()))
+        .map(|p| format!("{}: {}", p.name, p.ty.type_name(records)))
         .collect();
     let mut head = format!("fn {}({})", f.name, params.join(", "));
     if f.ret != Ty::Unit {
-        head.push_str(&format!(" -> {}", f.ret.name()));
+        head.push_str(&format!(" -> {}", f.ret.type_name(records)));
     }
     if !f.uses.is_empty() {
         head.push_str(&format!(" uses {}", f.uses.join(", ")));
@@ -51,7 +68,7 @@ fn format_fn(f: &FnDef) -> String {
     let mut out = format!("{head} {{\n");
     for s in &f.body.stmts {
         out.push_str("    ");
-        out.push_str(&format_stmt(s));
+        out.push_str(&format_stmt(s, records));
         out.push('\n');
     }
     if let Some(t) = &f.body.tail {
@@ -63,7 +80,7 @@ fn format_fn(f: &FnDef) -> String {
     out
 }
 
-fn format_stmt(s: &Stmt) -> String {
+fn format_stmt(s: &Stmt, records: &[RecordDef]) -> String {
     match s {
         Stmt::Let {
             name,
@@ -72,7 +89,7 @@ fn format_stmt(s: &Stmt) -> String {
             value,
         } => {
             let mut_kw = if *mutable { "mut " } else { "" };
-            let annot = ty.map_or(String::new(), |t| format!(": {}", t.name()));
+            let annot = ty.map_or(String::new(), |t| format!(": {}", t.type_name(records)));
             format!("let {mut_kw}{name}{annot} = {};", expr(value, 0))
         }
         Stmt::Expr(e) => format!("{};", expr(e, 0)),
@@ -93,6 +110,18 @@ fn expr(e: &Expr, needed: u8) -> String {
             format!("{callee}({})", parts.join(", "))
         }
         ExprKind::Group(inner) => expr(inner, needed),
+        ExprKind::Record { name, fields, .. } => {
+            if fields.is_empty() {
+                return format!("{name} {{}}");
+            }
+            let parts: Vec<String> = fields
+                .iter()
+                .map(|f| format!("{}: {}", f.name, expr(&f.value, 0)))
+                .collect();
+            format!("{name} {{ {} }}", parts.join(", "))
+        }
+        // The base of an access is printed at the highest precedence, so a binary base gets parentheses.
+        ExprKind::Field { base, name, .. } => format!("{}.{name}", expr(base, u8::MAX)),
         ExprKind::Bin { op, lhs, rhs } => {
             let p = op.prec();
             // Equality is non-associative, so a left child of equal precedence also needs parentheses.

@@ -5,7 +5,7 @@ use aqelith::serve::{start, ServeError};
 use std::io::{Read, Write};
 use std::net::{SocketAddr, TcpStream};
 
-const HANDLER: &str = "module site\n\nfn handle(path: str) -> str {\n    \"hello\"\n}\n\nfn same(p: str) -> bool {\n    p == \"/\"\n}\n";
+const HANDLER: &str = "module site\n\nrecord Request {\n    path: str,\n}\n\nrecord Response {\n    body: str,\n}\n\nfn handle(req: Request) -> Response {\n    Response { body: \"hello\" }\n}\n";
 
 fn request(addr: SocketAddr, raw: &[u8]) -> String {
     let mut s = TcpStream::connect(addr).unwrap();
@@ -45,7 +45,7 @@ fn a_get_returns_the_handler_text_with_security_headers() {
 
 #[test]
 fn the_handler_receives_the_path_without_the_query() {
-    let src = "module site\n\nfn handle(path: str) -> str {\n    path\n}\n";
+    let src = "module site\n\nrecord Request {\n    path: str,\n}\n\nrecord Response {\n    body: str,\n}\n\nfn handle(req: Request) -> Response {\n    Response { body: req.path }\n}\n";
     let addr = start(lower_source(src).unwrap(), 0).unwrap();
     let r = get(addr, "/docs?secret=1");
     assert!(r.ends_with("/docs"), "{r}");
@@ -92,7 +92,7 @@ fn an_oversized_head_is_refused_and_the_server_keeps_serving() {
 
 #[test]
 fn a_handler_that_declares_an_effect_is_not_started() {
-    let src = "module site\n\nfn handle(path: str) -> str uses net {\n    \"no\"\n}\n";
+    let src = "module site\n\nrecord Request {\n    path: str,\n}\n\nrecord Response {\n    body: str,\n}\n\nfn handle(req: Request) -> Response uses net {\n    Response { body: \"no\" }\n}\n";
     let p = lower_source(src).unwrap();
     assert!(matches!(start(p, 0), Err(ServeError::BadHandler(_))));
 }
@@ -102,5 +102,6 @@ fn a_program_without_the_right_handler_is_refused() {
     let p = lower_source("module m\n\nfn other() -> i32 {\n    1\n}\n").unwrap();
     assert!(matches!(start(p, 0), Err(ServeError::BadHandler(_))));
     let wrong = lower_source("module m\n\nfn handle(p: i32) -> str {\n    \"x\"\n}\n").unwrap();
+    // A plain str handler is the old contract: refused.
     assert!(matches!(start(wrong, 0), Err(ServeError::BadHandler(_))));
 }

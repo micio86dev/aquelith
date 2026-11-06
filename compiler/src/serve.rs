@@ -1,6 +1,7 @@
 //! Loopback HTTP host for a v0 handler (milestone S3, see docs/architecture/SERVE.md).
 //!
-//! The program provides `fn handle(path: str) -> str` with no declared effects. The host, not the
+//! The program provides `fn handle(req: Request) -> Response` with no declared effects, where
+//! `record Request { path: str }` and `record Response { body: str }` (docs/language/RECORDS.md). The host, not the
 //! language, owns the socket: it accepts connections on 127.0.0.1 only, runs the handler for each
 //! `GET`, and sends the returned text as the body. The `net` effect therefore stays refused inside
 //! the language (`interp`), and the host is the only place that opens a socket.
@@ -35,11 +36,19 @@ pub fn start(program: Program, port: u16) -> Result<SocketAddr, ServeError> {
         .iter()
         .find(|f| f.name == "handle")
         .ok_or_else(|| ServeError::BadHandler("no function 'handle'".into()))?;
-    if handler.params != [crate::ast::Ty::Str] || handler.ret != crate::ast::Ty::Str {
+    // The contract: fn handle(req: Request) -> Response, with record Request { path: str } and
+    // record Response { body: str } (docs/language/RECORDS.md). Anything else is refused.
+    let req_index = handler
+        .params
+        .first()
+        .and_then(|t| record_with(&program, *t, "Request", "path"))
+        .filter(|_| handler.params.len() == 1);
+    let resp_ok = record_with(&program, handler.ret, "Response", "body").is_some();
+    let Some(req_index) = req_index.filter(|_| resp_ok) else {
         return Err(ServeError::BadHandler(
-            "'handle' must take one str and return str".into(),
+            "'handle' must be fn handle(req: Request) -> Response, with record Request { path: str } and record Response { body: str }".into(),
         ));
-    }
+    };
     if let Some(effect) = handler.uses.first() {
         return Err(ServeError::BadHandler(format!(
             "'handle' declares effect '{effect}'; a handler runs without effects"
@@ -57,7 +66,7 @@ pub fn start(program: Program, port: u16) -> Result<SocketAddr, ServeError> {
                 // and the server keeps serving.
                 Ok(stream) => {
                     let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                        serve_one(stream, &program, addr.port())
+                        serve_one(stream, &program, addr.port(), req_index)
                     }));
                 }
                 Err(_) => std::thread::sleep(Duration::from_millis(50)),
@@ -67,7 +76,7 @@ pub fn start(program: Program, port: u16) -> Result<SocketAddr, ServeError> {
     Ok(addr)
 }
 
-fn serve_one(mut stream: TcpStream, program: &Program, port: u16) {
+fn serve_one(mut stream: TcpStream, program: &Program, port: u16, req_index: u32) {
     let _ = stream.set_read_timeout(Some(IO_TIMEOUT));
     let _ = stream.set_write_timeout(Some(IO_TIMEOUT));
     let head = match read_head(&mut stream) {
@@ -89,8 +98,15 @@ fn serve_one(mut stream: TcpStream, program: &Program, port: u16) {
         return respond(&mut stream, "403 Forbidden", b"");
     }
     let path = req.target.split('?').next().unwrap_or("/").to_string();
-    match run(program, "handle", &[Val::Str(path)]) {
-        Ok(Val::Str(body)) => respond(&mut stream, "200 OK", body.as_bytes()),
+    let request = Val::Rec {
+        ty: req_index,
+        fields: vec![Val::Str(path)],
+    };
+    match run(program, "handle", &[request]) {
+        Ok(Val::Rec { fields, .. }) => match fields.first() {
+            Some(Val::Str(body)) => respond(&mut stream, "200 OK", body.as_bytes()),
+            _ => respond(&mut stream, "500 Internal Server Error", b""),
+        },
         Ok(_) | Err(_) => {
             // The detail stays on the host; the client gets no information about the program.
             eprintln!("handler failed for a request");
@@ -183,4 +199,17 @@ fn parse_head(head: &str) -> Option<Req> {
         target,
         host,
     })
+}
+
+/// The index of the record type `ty` when it is `record <name> { <field>: str }`, else `None`.
+fn record_with(program: &Program, ty: crate::ast::Ty, name: &str, field: &str) -> Option<u32> {
+    let crate::ast::Ty::Rec(i) = ty else {
+        return None;
+    };
+    let r = program.records.get(i as usize)?;
+    let shaped = r.name == name
+        && r.fields.len() == 1
+        && r.fields[0].0 == field
+        && r.fields[0].1 == crate::ast::Ty::Str;
+    shaped.then_some(i)
 }

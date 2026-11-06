@@ -104,7 +104,10 @@ fn same_name_replace_keeps_the_id_and_a_deleted_id_is_never_reused() {
     // Replace add1 with the same name: its id stays.
     let hash = {
         let module = aqelith::parser::parse(SRC).unwrap();
-        aqelith::patch::fn_hash(module.items.iter().find(|f| f.name == "add1").unwrap())
+        aqelith::patch::fn_hash(
+            module.items.iter().find(|f| f.name == "add1").unwrap(),
+            &module.records,
+        )
     };
     let replace = format!(
         r#"{{"api":"aqelith.patch.v1","base":"{}","ops":[{{"op":"replace","target":"add1","expect":{{"hash":"{hash}"}},"with":"fn add1(x: i32) -> i32 {{\n    x + 2\n}}\n"}}]}}"#,
@@ -129,8 +132,10 @@ fn same_name_replace_keeps_the_id_and_a_deleted_id_is_never_reused() {
     );
     let unused_id = index_of(&file2).id_of("unused").unwrap().to_string();
     let module = aqelith::parser::parse(&with_unused).unwrap();
-    let unused_hash =
-        aqelith::patch::fn_hash(module.items.iter().find(|f| f.name == "unused").unwrap());
+    let unused_hash = aqelith::patch::fn_hash(
+        module.items.iter().find(|f| f.name == "unused").unwrap(),
+        &module.records,
+    );
     let delete = format!(
         r#"{{"api":"aqelith.patch.v1","base":"{}","ops":[{{"op":"delete","target":"unused","expect":{{"hash":"{unused_hash}"}}}}]}}"#,
         base(&with_unused)

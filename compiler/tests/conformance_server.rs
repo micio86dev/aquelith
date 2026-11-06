@@ -7,7 +7,7 @@ use aqelith::serve::{start, ServeError};
 use std::io::{Read, Write};
 use std::net::{SocketAddr, TcpStream};
 
-const SITE: &str = "module site\n\nfn handle(path: str) -> str {\n    \"ok\"\n}\n";
+const SITE: &str = "module site\n\nrecord Request {\n    path: str,\n}\n\nrecord Response {\n    body: str,\n}\n\nfn handle(req: Request) -> Response {\n    Response { body: \"ok\" }\n}\n";
 
 fn exchange(addr: SocketAddr, raw: &[u8]) -> String {
     let mut s = TcpStream::connect(addr).unwrap();
@@ -114,7 +114,7 @@ fn the_loopback_interface_conforms() {
 #[test]
 fn the_unsupported_capability_path_is_a_typed_refusal() {
     // I3: a handler that declares an effect is refused before the socket opens.
-    let src = "module site\n\nfn handle(path: str) -> str uses net {\n    \"no\"\n}\n";
+    let src = "module site\n\nrecord Request {\n    path: str,\n}\n\nrecord Response {\n    body: str,\n}\n\nfn handle(req: Request) -> Response uses net {\n    Response { body: \"no\" }\n}\n";
     let p = lower_source(src).unwrap();
     assert!(matches!(start(p, 0), Err(ServeError::BadHandler(_))));
 }
@@ -122,7 +122,7 @@ fn the_unsupported_capability_path_is_a_typed_refusal() {
 #[test]
 fn the_query_string_is_not_part_of_the_path() {
     // I1: the handler sees the path only; a query cannot change routing.
-    let src = "module site\n\nfn handle(path: str) -> str {\n    path\n}\n";
+    let src = "module site\n\nrecord Request {\n    path: str,\n}\n\nrecord Response {\n    body: str,\n}\n\nfn handle(req: Request) -> Response {\n    Response { body: req.path }\n}\n";
     let addr = start(lower_source(src).unwrap(), 0).unwrap();
     let (status, body) = status_and_body(&exchange(addr, &get("/docs?x=1")(addr.port())));
     assert_eq!(status, "HTTP/1.1 200 OK");

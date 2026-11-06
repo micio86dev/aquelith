@@ -367,7 +367,7 @@ fn fn_hash_of(src: &str, name: &str) -> String {
         .iter()
         .find(|f| f.name == name)
         .expect("function exists");
-    fn_hash(f)
+    fn_hash(f, &module.records)
 }
 
 const WITH_UNUSED: &str = "module demo

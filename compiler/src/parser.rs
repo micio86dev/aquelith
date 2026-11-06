@@ -22,11 +22,23 @@ pub fn is_identifier(s: &str) -> bool {
 
 pub fn parse(src: &str) -> Result<Module, Diagnostic> {
     let toks = lex(src)?;
+    // Record names are collected before parsing, so a type can name a record declared later.
+    let mut records = std::collections::BTreeMap::new();
+    let mut next = 0u32;
+    for w in toks.windows(2) {
+        if let (Tok::Ident(kw), Tok::Ident(name)) = (&w[0].tok, &w[1].tok) {
+            if kw == "record" {
+                records.entry(name.clone()).or_insert(next);
+                next += 1;
+            }
+        }
+    }
     let mut p = Parser {
         src,
         toks,
         pos: 0,
         nest: 0,
+        records,
     };
     p.module()
 }
@@ -36,6 +48,8 @@ struct Parser<'a> {
     toks: Vec<Token>,
     pos: usize,
     nest: usize,
+    /// Record name to its index in `Module::records`, collected before parsing.
+    records: std::collections::BTreeMap<String, u32>,
 }
 
 fn atom(kind: ExprKind, start: usize, end: usize) -> Expr {
@@ -62,6 +76,15 @@ impl<'a> Parser<'a> {
     fn err(&self, code: &'static str, msg: impl Into<String>) -> Diagnostic {
         let (s, e) = self.here();
         Diagnostic::new(self.src, code, msg, s, e)
+    }
+
+    /// A declared record name followed by `{` starts a record literal (S2).
+    fn is_record_literal(&self, word: &str) -> bool {
+        self.records.contains_key(word)
+            && matches!(
+                self.toks.get(self.pos + 1).map(|t| &t.tok),
+                Some(Tok::Sym("{"))
+            )
     }
 
     fn is_sym(&self, s: &str) -> bool {
@@ -117,16 +140,68 @@ impl<'a> Parser<'a> {
     fn module(&mut self) -> Result<Module, Diagnostic> {
         self.expect_kw("module")?;
         let (name, _, _) = self.ident()?;
+        let mut records: Vec<RecordDef> = Vec::new();
         let mut items = Vec::new();
         let mut pages = Vec::new();
         while self.pos < self.toks.len() {
-            if self.is_kw("page") {
+            if self.is_kw("record") {
+                records.push(self.record_def(&records)?);
+            } else if self.is_kw("page") {
                 pages.push(self.page_def()?);
             } else {
                 items.push(self.fn_def()?);
             }
         }
-        Ok(Module { name, items, pages })
+        Ok(Module {
+            name,
+            records,
+            items,
+            pages,
+        })
+    }
+
+    /// `record <Name> { <field>: <type>, ... }` (S2). Every field name is declared once.
+    fn record_def(&mut self, declared: &[RecordDef]) -> Result<RecordDef, Diagnostic> {
+        self.expect_kw("record")?;
+        let (name, name_start, name_end) = self.ident()?;
+        if declared.iter().any(|r| r.name == name) {
+            return Err(Diagnostic::new(
+                self.src,
+                "DUP001",
+                format!("record '{name}' is defined twice"),
+                name_start,
+                name_end,
+            ));
+        }
+        self.expect_sym("{")?;
+        let mut fields: Vec<(String, Ty)> = Vec::new();
+        while !self.is_sym("}") {
+            let (field, fs, fe) = self.ident()?;
+            if fields.iter().any(|(n, _)| *n == field) {
+                return Err(Diagnostic::new(
+                    self.src,
+                    "DUP001",
+                    format!("field '{field}' is declared twice in '{name}'"),
+                    fs,
+                    fe,
+                ));
+            }
+            self.expect_sym(":")?;
+            let ty = self.ty()?;
+            fields.push((field, ty));
+            if self.is_sym(",") {
+                self.pos += 1;
+            } else {
+                break;
+            }
+        }
+        self.expect_sym("}")?;
+        Ok(RecordDef {
+            name,
+            name_start,
+            name_end,
+            fields,
+        })
     }
 
     /// A string literal where the grammar requires one.
@@ -261,6 +336,9 @@ impl<'a> Parser<'a> {
 
     fn ty(&mut self) -> Result<Ty, Diagnostic> {
         let (name, s, e) = self.ident()?;
+        if let Some(i) = self.records.get(&name) {
+            return Ok(Ty::Rec(*i));
+        }
         Ty::from_name(&name).ok_or_else(|| {
             Diagnostic::new(self.src, "TYP004", format!("unknown type '{name}'"), s, e)
         })
@@ -364,7 +442,33 @@ impl<'a> Parser<'a> {
         Ok(lhs)
     }
 
+    /// A primary expression followed by any number of `.field` accesses (S2).
     fn primary(&mut self) -> Result<Expr, Diagnostic> {
+        let mut e = self.primary_base()?;
+        while self.is_sym(".") {
+            self.pos += 1;
+            let (name, name_start, name_end) = self.ident()?;
+            let depth = e.depth + 1;
+            if depth > MAX_DEPTH {
+                return Err(self.err("PAR002", "expression nesting too deep"));
+            }
+            let start = e.start;
+            e = Expr {
+                kind: ExprKind::Field {
+                    base: Box::new(e),
+                    name,
+                    name_start,
+                    name_end,
+                },
+                start,
+                end: name_end,
+                depth,
+            };
+        }
+        Ok(e)
+    }
+
+    fn primary_base(&mut self) -> Result<Expr, Diagnostic> {
         let tok = match self.toks.get(self.pos) {
             Some(t) => t.clone(),
             None => return Err(self.err("PAR001", "expected expression")),
@@ -381,6 +485,40 @@ impl<'a> Parser<'a> {
             Tok::Str(value) => {
                 self.pos += 1;
                 Ok(atom(ExprKind::Str(value.clone()), tok.start, tok.end))
+            }
+            Tok::Ident(word) if self.is_record_literal(word) => {
+                let (name, name_start, name_end) = self.ident()?;
+                self.expect_sym("{")?;
+                let mut fields = Vec::new();
+                while !self.is_sym("}") {
+                    let (fname, fs, fe) = self.ident()?;
+                    self.expect_sym(":")?;
+                    let value = self.expr()?;
+                    fields.push(RecordField {
+                        name: fname,
+                        start: fs,
+                        end: fe,
+                        value,
+                    });
+                    if self.is_sym(",") {
+                        self.pos += 1;
+                    } else {
+                        break;
+                    }
+                }
+                let (_, end) = self.here();
+                self.expect_sym("}")?;
+                Ok(Expr {
+                    kind: ExprKind::Record {
+                        name,
+                        name_start,
+                        name_end,
+                        fields,
+                    },
+                    start: tok.start,
+                    end,
+                    depth: 1,
+                })
             }
             Tok::Ident(_) => {
                 let (name, s, e) = self.ident()?;

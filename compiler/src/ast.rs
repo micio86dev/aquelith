@@ -22,6 +22,8 @@ pub enum Ty {
     /// Text of printable ASCII (S2). Values exist at run time only; no operations beyond equality.
     Str,
     Unit,
+    /// A record type: an index into `Module::records`. Records are declared at module level (S2).
+    Rec(u32),
 }
 
 impl Ty {
@@ -36,6 +38,7 @@ impl Ty {
         }
     }
 
+    /// Name of a primitive type. A record type is named through `Module::records`, see `type_name`.
     pub fn name(self) -> &'static str {
         match self {
             Ty::I32 => "i32",
@@ -43,6 +46,7 @@ impl Ty {
             Ty::Bool => "bool",
             Ty::Str => "str",
             Ty::Unit => "unit",
+            Ty::Rec(_) => "record",
         }
     }
 }
@@ -90,6 +94,20 @@ pub enum ExprKind {
     Bool(bool),
     /// String literal, value without quotes. Printable ASCII, no quote or backslash (ADR-0015).
     Str(String),
+    /// `Name { field: expr, ... }`: every declared field exactly once (S2 records).
+    Record {
+        name: String,
+        name_start: usize,
+        name_end: usize,
+        fields: Vec<RecordField>,
+    },
+    /// `expr.field` (S2 records).
+    Field {
+        base: Box<Expr>,
+        name: String,
+        name_start: usize,
+        name_end: usize,
+    },
     Ident(String),
     Call {
         callee: String,
@@ -141,8 +159,39 @@ pub struct FnDef {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Module {
     pub name: String,
+    pub records: Vec<RecordDef>,
     pub items: Vec<FnDef>,
     pub pages: Vec<Page>,
+}
+
+/// A record declaration (S2): named, typed fields, all required, no methods.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RecordDef {
+    pub name: String,
+    pub name_start: usize,
+    pub name_end: usize,
+    pub fields: Vec<(String, Ty)>,
+}
+
+/// One `name: expr` entry of a record literal.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RecordField {
+    pub name: String,
+    pub start: usize,
+    pub end: usize,
+    pub value: Expr,
+}
+
+impl Ty {
+    /// Human name of a type in messages: primitives by name, records by their declared name.
+    pub fn type_name(self, records: &[RecordDef]) -> String {
+        match self {
+            Ty::Rec(i) => records
+                .get(i as usize)
+                .map_or_else(|| "record".to_string(), |r| r.name.clone()),
+            other => other.name().to_string(),
+        }
+    }
 }
 
 /// A string literal and its span. `value` excludes the quotes; the span includes them.
