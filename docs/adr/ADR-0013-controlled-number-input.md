@@ -28,7 +28,7 @@ ADR-0012 lists forms as not claimed. M6 still needs a first form that goes throu
 
 ## Evidence
 
-- Automated: `web/tests/render.rs` (14 tests in total, 4 for the input) covers the label association, the initial value, the `set` entry in the handler table, the non-empty label rule, undeclared cells, and escaping in the label.
+- Automated: `web/tests/render.rs` (16 tests in total, 4 for the input) covers the label association, the initial value, the `set` entry in the handler table, the non-empty label rule, undeclared cells, and escaping in the label.
 - Automated: `web/tests/runtime.test.mjs` (6 tests, `node --test web/tests/runtime.test.mjs`) runs the real runtime against a DOM stub. It covers a valid integer committing only the bound cell, rejection and restoration for 7 invalid texts, and a `change` on an add-operation handler doing nothing. Mutation check: removing the integer format check fails 1 test.
-- Manual, not automated: on 2026-11-06 `examples/form/index.html` was served locally and checked in Chrome with real `change` events dispatched in the page. `42` committed to 42 in the bound text and the input. `1.5` and `1e3` were rejected, and the state stayed unchanged. A click on the button added one. Typed input through the real keyboard was not checked.
+- Automated in headless Chrome: `web/tests/browser/run.mjs` builds `examples/form` with the compiler, opens it in Chrome, and dispatches real `change` and click events. `42` is committed to the text and the input; `1.5` and `1e3` are refused and the input is restored; the button adds one. Mutation check: a runtime that does not restore refused input fails the test. Real keyboard typing and screen readers were not tested.
 - Not done: keyboard and screen-reader testing, real typing in a browser test in CI, and a submit flow.

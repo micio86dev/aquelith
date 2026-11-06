@@ -112,3 +112,25 @@ fn form_labels_are_escaped() {
     let html = render_page(&page_with(body)).unwrap();
     assert!(html.contains("<label for=\"aq-h1\">&lt;b&gt;q&lt;/b&gt;</label>"), "{html}");
 }
+
+#[test]
+fn an_empty_title_is_a_build_error() {
+    let mut page = counter_page();
+    page.title = "  ".into();
+    assert_eq!(render_page(&page).unwrap_err(), BuildError::EmptyTitle);
+}
+
+#[test]
+fn accessibility_findings_report_missing_h1_and_skipped_levels() {
+    assert!(aqelith_web::accessibility_findings(&counter_page()).is_empty());
+    let no_h1 = page_with(View::Element { tag: "p".into(), children: vec![] });
+    assert_eq!(aqelith_web::accessibility_findings(&no_h1), vec!["no level-one heading (h1)".to_string()]);
+    let skipped = page_with(View::Element {
+        tag: "main".into(),
+        children: vec![
+            View::Element { tag: "h1".into(), children: vec![] },
+            View::Element { tag: "h3".into(), children: vec![] },
+        ],
+    });
+    assert_eq!(aqelith_web::accessibility_findings(&skipped), vec!["heading level skipped: h1 to h3".to_string()]);
+}

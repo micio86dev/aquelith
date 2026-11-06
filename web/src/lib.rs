@@ -48,6 +48,8 @@ pub enum BuildError {
     BadRoute(String),
     /// A link to a route the site does not have.
     BrokenLink(String),
+    /// The page title is empty; a title is required for every page (WCAG 2.4.2).
+    EmptyTitle,
 }
 
 struct Out {
@@ -167,6 +169,39 @@ pub fn render_site(site: &Site) -> Result<Vec<(String, String)>, BuildError> {
     Ok(out)
 }
 
+/// Accessibility findings that are not build errors (heuristics, WCAG 1.3.1 and 2.4.6): a page
+/// without a level-one heading, and a heading level that is skipped (for example h1 then h3).
+/// An empty list means no finding, not that the page is accessible.
+pub fn accessibility_findings(page: &Page) -> Vec<String> {
+    let mut levels: Vec<u8> = Vec::new();
+    collect_heading_levels(&page.body, &mut levels);
+    let mut findings = Vec::new();
+    if !levels.contains(&1) {
+        findings.push("no level-one heading (h1)".to_string());
+    }
+    for pair in levels.windows(2) {
+        if pair[1] > pair[0] + 1 {
+            findings.push(format!("heading level skipped: h{} to h{}", pair[0], pair[1]));
+        }
+    }
+    findings
+}
+
+fn collect_heading_levels(v: &View, out: &mut Vec<u8>) {
+    match v {
+        View::Element { tag, children } => {
+            match tag.as_str() {
+                "h1" => out.push(1),
+                "h2" => out.push(2),
+                "h3" => out.push(3),
+                _ => {}
+            }
+            children.iter().for_each(|c| collect_heading_levels(c, out));
+        }
+        View::Text(_) | View::Button { .. } | View::Bind { .. } | View::Input { .. } | View::Link { .. } => {}
+    }
+}
+
 fn collect_links(v: &View, out: &mut Vec<String>) {
     match v {
         View::Element { children, .. } => children.iter().for_each(|c| collect_links(c, out)),
@@ -188,6 +223,9 @@ fn check_op(op: &Op, cells: &BTreeMap<String, i64>) -> Result<(), BuildError> {
 
 /// Render a complete document. Output is deterministic for the same page.
 pub fn render_page(page: &Page) -> Result<String, BuildError> {
+    if page.title.trim().is_empty() {
+        return Err(BuildError::EmptyTitle);
+    }
     let mut out = Out { html: String::new(), handlers: Vec::new(), next: 0 };
     walk(&page.body, &page.cells, &mut out)?;
     let handlers: Vec<String> = out
