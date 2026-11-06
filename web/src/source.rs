@@ -22,16 +22,29 @@ pub fn site_from_source(src: &str) -> Result<Vec<(String, String)>, SourceError>
     if !diags.is_empty() {
         return Err(SourceError::Diagnostics(diags));
     }
-    let routes = module.pages.iter().map(|p| (p.route.value.clone(), to_page(p))).collect();
+    let routes = module
+        .pages
+        .iter()
+        .map(|p| (p.route.value.clone(), to_page(p)))
+        .collect();
     render_site(&Site { routes }).map_err(SourceError::Build)
 }
 
 /// Same as `site_from_source`, and links `href` as a stylesheet in the head of every page.
 /// Styles are a backend asset, not part of the language: the core stays target-neutral (S1).
-pub fn site_from_source_with_style(src: &str, href: &str) -> Result<Vec<(String, String)>, SourceError> {
-    let link = format!("<link rel=\"stylesheet\" href=\"{}\">\n</head>", escape_html(href));
+pub fn site_from_source_with_style(
+    src: &str,
+    href: &str,
+) -> Result<Vec<(String, String)>, SourceError> {
+    let link = format!(
+        "<link rel=\"stylesheet\" href=\"{}\">\n</head>",
+        escape_html(href)
+    );
     let files = site_from_source(src)?;
-    Ok(files.into_iter().map(|(path, html)| (path, html.replacen("</head>", &link, 1))).collect())
+    Ok(files
+        .into_iter()
+        .map(|(path, html)| (path, html.replacen("</head>", &link, 1)))
+        .collect())
 }
 
 fn to_page(p: &SourcePage) -> Page {
@@ -48,16 +61,26 @@ fn to_page(p: &SourcePage) -> Page {
         .iter()
         .filter_map(|item| match item {
             PageItem::Title(_) => None,
-            PageItem::Heading { level, text } => {
-                Some(View::Element { tag: format!("h{level}"), children: vec![View::Text(text.value.clone())] })
-            }
-            PageItem::Para(t) => Some(View::Element { tag: "p".to_string(), children: vec![View::Text(t.value.clone())] }),
-            PageItem::Link { label, href } => Some(View::Link { label: label.value.clone(), href: href.value.clone() }),
+            PageItem::Heading { level, text } => Some(View::Element {
+                tag: format!("h{level}"),
+                children: vec![View::Text(text.value.clone())],
+            }),
+            PageItem::Para(t) => Some(View::Element {
+                tag: "p".to_string(),
+                children: vec![View::Text(t.value.clone())],
+            }),
+            PageItem::Link { label, href } => Some(View::Link {
+                label: label.value.clone(),
+                href: href.value.clone(),
+            }),
         })
         .collect();
     Page {
         title,
         cells: Default::default(),
-        body: View::Element { tag: "main".to_string(), children },
+        body: View::Element {
+            tag: "main".to_string(),
+            children,
+        },
     }
 }

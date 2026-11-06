@@ -7,14 +7,47 @@ struct Lcg(u64);
 
 impl Lcg {
     fn next(&mut self) -> u64 {
-        self.0 = self.0.wrapping_mul(6_364_136_223_846_793_005).wrapping_add(1_442_695_040_888_963_407);
+        self.0 = self
+            .0
+            .wrapping_mul(6_364_136_223_846_793_005)
+            .wrapping_add(1_442_695_040_888_963_407);
         self.0 >> 33
     }
 }
 
 const PIECES: &[&str] = &[
-    "fn ", "let ", "mut ", "module ", "uses ", "(", ")", "{", "}", ",", ":", ";", "=", "->", "==", "+", "-", "*", "1",
-    "4294967296", "x", "f", "i32", "u32", "bool", "true", "\n", " ", "/", "é", "io", "float",
+    "fn ",
+    "let ",
+    "mut ",
+    "module ",
+    "uses ",
+    "(",
+    ")",
+    "{",
+    "}",
+    ",",
+    ":",
+    ";",
+    "=",
+    "->",
+    "==",
+    "+",
+    "-",
+    "*",
+    "1",
+    "4294967296",
+    "x",
+    "f",
+    "i32",
+    "u32",
+    "bool",
+    "true",
+    "\n",
+    " ",
+    "/",
+    "é",
+    "io",
+    "float",
 ];
 
 #[test]
@@ -34,7 +67,11 @@ fn random_token_soup_never_panics() {
 
 #[test]
 fn hundred_thousand_open_parentheses_are_rejected_not_crashed() {
-    let src = format!("module m\nfn f() -> i32 {{ {}1{} }}", "(".repeat(100_000), ")".repeat(100_000));
+    let src = format!(
+        "module m\nfn f() -> i32 {{ {}1{} }}",
+        "(".repeat(100_000),
+        ")".repeat(100_000)
+    );
     assert_eq!(check_source(&src)[0].code, "PAR002");
 }
 
@@ -48,6 +85,10 @@ fn hundred_thousand_term_chain_is_rejected_not_crashed() {
 #[test]
 fn deep_but_legal_nesting_is_accepted() {
     let depth = 60;
-    let src = format!("module m\nfn f() -> i32 {{ {}1{} }}", "(".repeat(depth), ")".repeat(depth));
+    let src = format!(
+        "module m\nfn f() -> i32 {{ {}1{} }}",
+        "(".repeat(depth),
+        ")".repeat(depth)
+    );
     assert!(check_source(&src).is_empty());
 }

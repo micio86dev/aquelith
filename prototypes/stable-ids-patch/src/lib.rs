@@ -10,7 +10,9 @@ const FNV_OFFSET: u64 = 0xcbf2_9ce4_8422_2325;
 const FNV_PRIME: u64 = 0x0000_0100_0000_01b3;
 
 fn fnv1a(bytes: &[u8]) -> u64 {
-    bytes.iter().fold(FNV_OFFSET, |h, b| (h ^ u64::from(*b)).wrapping_mul(FNV_PRIME))
+    bytes.iter().fold(FNV_OFFSET, |h, b| {
+        (h ^ u64::from(*b)).wrapping_mul(FNV_PRIME)
+    })
 }
 
 /// Opaque identity assigned once, never derived from position or name, never reused.
@@ -54,10 +56,26 @@ pub struct Graph {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Op {
-    Rename { target: PersistentId, expect_name: String, to: String },
-    SetValue { target: PersistentId, expect_value: i64, to: i64 },
-    Insert { at: usize, name: String, ty: Ty, value: i64 },
-    Delete { target: PersistentId, expect_hash: u64 },
+    Rename {
+        target: PersistentId,
+        expect_name: String,
+        to: String,
+    },
+    SetValue {
+        target: PersistentId,
+        expect_value: i64,
+        to: i64,
+    },
+    Insert {
+        at: usize,
+        name: String,
+        ty: Ty,
+        value: i64,
+    },
+    Delete {
+        target: PersistentId,
+        expect_hash: u64,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -69,24 +87,45 @@ pub struct Patch {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Rejection {
     /// The patch was built against a different graph state.
-    Stale { expected_base: u64, actual_base: u64 },
+    Stale {
+        expected_base: u64,
+        actual_base: u64,
+    },
     UnknownTarget(PersistentId),
     /// Precondition on op `op` failed; nothing was applied.
-    PreconditionFailed { op: usize, detail: String },
+    PreconditionFailed {
+        op: usize,
+        detail: String,
+    },
     /// Validation after op `op` failed; nothing was applied.
-    Invalid { op: usize, code: &'static str, detail: String },
+    Invalid {
+        op: usize,
+        code: &'static str,
+        detail: String,
+    },
 }
 
 impl Graph {
     pub fn new() -> Self {
-        Graph { next_id: 1, nodes: BTreeMap::new(), order: Vec::new() }
+        Graph {
+            next_id: 1,
+            nodes: BTreeMap::new(),
+            order: Vec::new(),
+        }
     }
 
     /// Host-side setup that bypasses patches. Tests use it to build fixtures.
     pub fn insert_direct(&mut self, at: usize, name: &str, ty: Ty, value: i64) -> PersistentId {
         let id = PersistentId(self.next_id);
         self.next_id += 1;
-        self.nodes.insert(id, Node { name: name.to_string(), ty, value });
+        self.nodes.insert(
+            id,
+            Node {
+                name: name.to_string(),
+                ty,
+                value,
+            },
+        );
         self.order.insert(at, id);
         id
     }
@@ -101,7 +140,10 @@ impl Graph {
 
     /// Position-derived id, the scheme Zerolang uses (per its audit). Shown only to compare.
     pub fn positional_id(&self, id: PersistentId) -> Option<String> {
-        self.order.iter().position(|x| *x == id).map(|i| format!("pos:{i}"))
+        self.order
+            .iter()
+            .position(|x| *x == id)
+            .map(|i| format!("pos:{i}"))
     }
 
     /// Hash over program order and node contents: the observable program state.
@@ -130,7 +172,10 @@ impl Graph {
     fn plan(&self, patch: &Patch) -> Result<Graph, Rejection> {
         let current = self.graph_hash();
         if patch.base != current {
-            return Err(Rejection::Stale { expected_base: patch.base, actual_base: current });
+            return Err(Rejection::Stale {
+                expected_base: patch.base,
+                actual_base: current,
+            });
         }
         let mut next = self.clone();
         for (i, op) in patch.ops.iter().enumerate() {
@@ -142,8 +187,15 @@ impl Graph {
 
     fn apply_op(&mut self, index: usize, op: &Op) -> Result<(), Rejection> {
         match op {
-            Op::Rename { target, expect_name, to } => {
-                let node = self.nodes.get_mut(target).ok_or(Rejection::UnknownTarget(*target))?;
+            Op::Rename {
+                target,
+                expect_name,
+                to,
+            } => {
+                let node = self
+                    .nodes
+                    .get_mut(target)
+                    .ok_or(Rejection::UnknownTarget(*target))?;
                 if &node.name != expect_name {
                     return Err(Rejection::PreconditionFailed {
                         op: index,
@@ -152,8 +204,15 @@ impl Graph {
                 }
                 node.name = to.clone();
             }
-            Op::SetValue { target, expect_value, to } => {
-                let node = self.nodes.get_mut(target).ok_or(Rejection::UnknownTarget(*target))?;
+            Op::SetValue {
+                target,
+                expect_value,
+                to,
+            } => {
+                let node = self
+                    .nodes
+                    .get_mut(target)
+                    .ok_or(Rejection::UnknownTarget(*target))?;
                 if node.value != *expect_value {
                     return Err(Rejection::PreconditionFailed {
                         op: index,
@@ -162,7 +221,12 @@ impl Graph {
                 }
                 node.value = *to;
             }
-            Op::Insert { at, name, ty, value } => {
+            Op::Insert {
+                at,
+                name,
+                ty,
+                value,
+            } => {
                 if *at > self.order.len() {
                     return Err(Rejection::PreconditionFailed {
                         op: index,
@@ -171,11 +235,24 @@ impl Graph {
                 }
                 let id = PersistentId(self.next_id);
                 self.next_id += 1;
-                self.nodes.insert(id, Node { name: name.clone(), ty: *ty, value: *value });
+                self.nodes.insert(
+                    id,
+                    Node {
+                        name: name.clone(),
+                        ty: *ty,
+                        value: *value,
+                    },
+                );
                 self.order.insert(*at, id);
             }
-            Op::Delete { target, expect_hash } => {
-                let node = self.nodes.get(target).ok_or(Rejection::UnknownTarget(*target))?;
+            Op::Delete {
+                target,
+                expect_hash,
+            } => {
+                let node = self
+                    .nodes
+                    .get(target)
+                    .ok_or(Rejection::UnknownTarget(*target))?;
                 if node.content_hash() != *expect_hash {
                     return Err(Rejection::PreconditionFailed {
                         op: index,

@@ -16,8 +16,16 @@ const USAGE: &str = "usage:
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
-    let flags: Vec<&str> = args.iter().filter(|a| a.starts_with("--")).map(String::as_str).collect();
-    let pos: Vec<&str> = args.iter().filter(|a| !a.starts_with("--")).map(String::as_str).collect();
+    let flags: Vec<&str> = args
+        .iter()
+        .filter(|a| a.starts_with("--"))
+        .map(String::as_str)
+        .collect();
+    let pos: Vec<&str> = args
+        .iter()
+        .filter(|a| !a.starts_with("--"))
+        .map(String::as_str)
+        .collect();
     let json = flags.contains(&"--json");
     let write = flags.contains(&"--write");
     match pos.as_slice() {
@@ -50,7 +58,11 @@ fn check(file: &str, json: bool) -> ExitCode {
     let diags = check_source(&src);
     if json {
         let items: Vec<String> = diags.iter().map(|d| d.to_json()).collect();
-        println!("{{\"ok\":{},\"diagnostics\":[{}]}}", diags.is_empty(), items.join(","));
+        println!(
+            "{{\"ok\":{},\"diagnostics\":[{}]}}",
+            diags.is_empty(),
+            items.join(",")
+        );
     } else if diags.is_empty() {
         println!("ok");
     } else {
@@ -192,7 +204,9 @@ fn patch_cmd(file: &str, doc: &str, dry_run: bool) -> ExitCode {
             if let Ok(module) = parser::parse(&accepted.text) {
                 index.sync(&module, &mut fresh_id);
             }
-            if let Err(e) = patch::write_atomic(std::path::Path::new(&index_path(file)), &index.to_json()) {
+            if let Err(e) =
+                patch::write_atomic(std::path::Path::new(&index_path(file)), &index.to_json())
+            {
                 eprintln!("{}: {e}", index_path(file));
                 return ExitCode::from(2);
             }
@@ -217,7 +231,9 @@ fn ids_cmd(file: &str, write: bool) -> ExitCode {
     index.sync(&module, &mut fresh_id);
     print!("{}", index.to_json());
     if write {
-        if let Err(e) = patch::write_atomic(std::path::Path::new(&index_path(file)), &index.to_json()) {
+        if let Err(e) =
+            patch::write_atomic(std::path::Path::new(&index_path(file)), &index.to_json())
+        {
             eprintln!("{}: {e}", index_path(file));
             return ExitCode::from(2);
         }

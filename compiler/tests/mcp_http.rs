@@ -51,7 +51,13 @@ fn a_notification_gets_202_and_no_body() {
 #[test]
 fn a_foreign_host_header_is_refused_against_dns_rebinding() {
     let addr = start(1);
-    let reply = send(addr, &post("evil.example", r#"{"jsonrpc":"2.0","id":1,"method":"ping"}"#));
+    let reply = send(
+        addr,
+        &post(
+            "evil.example",
+            r#"{"jsonrpc":"2.0","id":1,"method":"ping"}"#,
+        ),
+    );
     assert!(reply.starts_with("HTTP/1.1 403"), "{reply}");
 }
 

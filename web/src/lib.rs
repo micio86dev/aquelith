@@ -9,20 +9,36 @@ pub mod source;
 pub use source::{site_from_source, site_from_source_with_style, SourceError};
 
 /// Element tags the renderer accepts. Anything else is a build error.
-pub const ALLOWED_TAGS: &[&str] = &["main", "section", "header", "footer", "p", "h1", "h2", "h3", "ul", "li", "span", "div"];
+pub const ALLOWED_TAGS: &[&str] = &[
+    "main", "section", "header", "footer", "p", "h1", "h2", "h3", "ul", "li", "span", "div",
+];
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum View {
-    Element { tag: String, children: Vec<View> },
+    Element {
+        tag: String,
+        children: Vec<View>,
+    },
     Text(String),
     /// Accessible name is `label`; it must not be empty.
-    Button { label: String, op: Op },
+    Button {
+        label: String,
+        op: Op,
+    },
     /// Displays the current value of a declared state cell.
-    Bind { cell: String },
+    Bind {
+        cell: String,
+    },
     /// Controlled integer input for one declared cell (ADR-0013). The label is its accessible name.
-    Input { label: String, cell: String },
+    Input {
+        label: String,
+        cell: String,
+    },
     /// Link to a route of the same site (ADR-0014). `href` must be a path starting with one `/`.
-    Link { label: String, href: String },
+    Link {
+        label: String,
+        href: String,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -88,8 +104,13 @@ fn walk(v: &View, cells: &BTreeMap<String, i64>, out: &mut Out) -> Result<(), Bu
             out.handlers.push((id, op.clone()));
         }
         View::Bind { cell } => {
-            let value = cells.get(cell).ok_or_else(|| BuildError::UnknownCell(cell.clone()))?;
-            out.html.push_str(&format!("<span data-bind=\"{}\">{value}</span>", escape_html(cell)));
+            let value = cells
+                .get(cell)
+                .ok_or_else(|| BuildError::UnknownCell(cell.clone()))?;
+            out.html.push_str(&format!(
+                "<span data-bind=\"{}\">{value}</span>",
+                escape_html(cell)
+            ));
         }
         View::Link { label, href } => {
             if label.trim().is_empty() {
@@ -98,13 +119,19 @@ fn walk(v: &View, cells: &BTreeMap<String, i64>, out: &mut Out) -> Result<(), Bu
             if !is_same_site_path(href) {
                 return Err(BuildError::BadHref(href.clone()));
             }
-            out.html.push_str(&format!("<a href=\"{}\">{}</a>", escape_html(href), escape_html(label)));
+            out.html.push_str(&format!(
+                "<a href=\"{}\">{}</a>",
+                escape_html(href),
+                escape_html(label)
+            ));
         }
         View::Input { label, cell } => {
             if label.trim().is_empty() {
                 return Err(BuildError::EmptyLabel);
             }
-            let value = cells.get(cell).ok_or_else(|| BuildError::UnknownCell(cell.clone()))?;
+            let value = cells
+                .get(cell)
+                .ok_or_else(|| BuildError::UnknownCell(cell.clone()))?;
             out.next += 1;
             let id = format!("h{}", out.next);
             let dom_id = format!("aq-{id}");
@@ -131,7 +158,11 @@ fn is_same_site_path(href: &str) -> bool {
 
 /// Route paths: `/` or `/a/b` with no trailing slash, dot segments or query parts.
 fn is_route(path: &str) -> bool {
-    path == "/" || (is_same_site_path(path) && !path.ends_with('/') && !path.contains('?') && !path.contains('#'))
+    path == "/"
+        || (is_same_site_path(path)
+            && !path.ends_with('/')
+            && !path.contains('?')
+            && !path.contains('#'))
 }
 
 /// Files for one route: `/` is `index.html`; `/about` is `about/index.html`.
@@ -184,7 +215,10 @@ pub fn accessibility_findings(page: &Page) -> Vec<String> {
     }
     for pair in levels.windows(2) {
         if pair[1] > pair[0] + 1 {
-            findings.push(format!("heading level skipped: h{} to h{}", pair[0], pair[1]));
+            findings.push(format!(
+                "heading level skipped: h{} to h{}",
+                pair[0], pair[1]
+            ));
         }
     }
     findings
@@ -201,7 +235,11 @@ fn collect_heading_levels(v: &View, out: &mut Vec<u8>) {
             }
             children.iter().for_each(|c| collect_heading_levels(c, out));
         }
-        View::Text(_) | View::Button { .. } | View::Bind { .. } | View::Input { .. } | View::Link { .. } => {}
+        View::Text(_)
+        | View::Button { .. }
+        | View::Bind { .. }
+        | View::Input { .. }
+        | View::Link { .. } => {}
     }
 }
 
@@ -229,14 +267,22 @@ pub fn render_page(page: &Page) -> Result<String, BuildError> {
     if page.title.trim().is_empty() {
         return Err(BuildError::EmptyTitle);
     }
-    let mut out = Out { html: String::new(), handlers: Vec::new(), next: 0 };
+    let mut out = Out {
+        html: String::new(),
+        handlers: Vec::new(),
+        next: 0,
+    };
     walk(&page.body, &page.cells, &mut out)?;
     let handlers: Vec<String> = out
         .handlers
         .iter()
         .map(|(id, op)| format!("{}:{}", json_string(id), op_json(op)))
         .collect();
-    let cells: Vec<String> = page.cells.iter().map(|(k, v)| format!("{}:{v}", json_string(k))).collect();
+    let cells: Vec<String> = page
+        .cells
+        .iter()
+        .map(|(k, v)| format!("{}:{v}", json_string(k)))
+        .collect();
     // A page without state or handlers is static: it loads no script (a static route may sit in a
     // subdirectory, where a relative runtime path would not resolve).
     let scripts = if page.cells.is_empty() && out.handlers.is_empty() {
@@ -262,7 +308,10 @@ pub fn render_page(page: &Page) -> Result<String, BuildError> {
 
 fn op_json(op: &Op) -> String {
     match op {
-        Op::Add { cell, delta } => format!("{{\"op\":\"add\",\"cell\":{},\"delta\":{delta}}}", json_string(cell)),
+        Op::Add { cell, delta } => format!(
+            "{{\"op\":\"add\",\"cell\":{},\"delta\":{delta}}}",
+            json_string(cell)
+        ),
         Op::Set { cell } => format!("{{\"op\":\"set\",\"cell\":{}}}", json_string(cell)),
     }
 }
@@ -314,13 +363,30 @@ pub fn form_page() -> Page {
         body: View::Element {
             tag: "main".to_string(),
             children: vec![
-                View::Element { tag: "h1".to_string(), children: vec![View::Text("Order quantity".to_string())] },
+                View::Element {
+                    tag: "h1".to_string(),
+                    children: vec![View::Text("Order quantity".to_string())],
+                },
                 View::Element {
                     tag: "p".to_string(),
-                    children: vec![View::Text("Current: ".to_string()), View::Bind { cell: "quantity".to_string() }],
+                    children: vec![
+                        View::Text("Current: ".to_string()),
+                        View::Bind {
+                            cell: "quantity".to_string(),
+                        },
+                    ],
                 },
-                View::Input { label: "Quantity".to_string(), cell: "quantity".to_string() },
-                View::Button { label: "Add one".to_string(), op: Op::Add { cell: "quantity".to_string(), delta: 1 } },
+                View::Input {
+                    label: "Quantity".to_string(),
+                    cell: "quantity".to_string(),
+                },
+                View::Button {
+                    label: "Add one".to_string(),
+                    op: Op::Add {
+                        cell: "quantity".to_string(),
+                        delta: 1,
+                    },
+                },
             ],
         },
     }
@@ -334,13 +400,33 @@ pub fn counter_page() -> Page {
         body: View::Element {
             tag: "main".to_string(),
             children: vec![
-                View::Element { tag: "h1".to_string(), children: vec![View::Text("Counter".to_string())] },
+                View::Element {
+                    tag: "h1".to_string(),
+                    children: vec![View::Text("Counter".to_string())],
+                },
                 View::Element {
                     tag: "p".to_string(),
-                    children: vec![View::Text("Value: ".to_string()), View::Bind { cell: "count".to_string() }],
+                    children: vec![
+                        View::Text("Value: ".to_string()),
+                        View::Bind {
+                            cell: "count".to_string(),
+                        },
+                    ],
                 },
-                View::Button { label: "Increment".to_string(), op: Op::Add { cell: "count".to_string(), delta: 1 } },
-                View::Button { label: "Decrement".to_string(), op: Op::Add { cell: "count".to_string(), delta: -1 } },
+                View::Button {
+                    label: "Increment".to_string(),
+                    op: Op::Add {
+                        cell: "count".to_string(),
+                        delta: 1,
+                    },
+                },
+                View::Button {
+                    label: "Decrement".to_string(),
+                    op: Op::Add {
+                        cell: "count".to_string(),
+                        delta: -1,
+                    },
+                },
             ],
         },
     }

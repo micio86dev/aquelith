@@ -26,7 +26,14 @@ pub fn check_module(src: &str, m: &Module) -> Vec<Diagnostic> {
             ));
             continue;
         }
-        sigs.insert(f.name.clone(), Sig { params: f.params.iter().map(|p| p.ty).collect(), ret: f.ret, uses: f.uses.clone() });
+        sigs.insert(
+            f.name.clone(),
+            Sig {
+                params: f.params.iter().map(|p| p.ty).collect(),
+                ret: f.ret,
+                uses: f.uses.clone(),
+            },
+        );
     }
     for f in &m.items {
         if let Err(d) = check_fn(src, &sigs, f) {
@@ -53,7 +60,9 @@ fn check_fn(src: &str, sigs: &BTreeMap<String, Sig>, f: &FnDef) -> Result<(), Di
     };
     for stmt in &f.body.stmts {
         match stmt {
-            Stmt::Let { name, ty, value, .. } => {
+            Stmt::Let {
+                name, ty, value, ..
+            } => {
                 let vt = cx.expr(value, *ty)?;
                 cx.locals.push((name.clone(), ty.unwrap_or(vt)));
             }
@@ -88,7 +97,11 @@ impl Ctx<'_> {
     /// Accept `actual` when no type is expected or it matches; otherwise TYP001.
     fn want(&self, e: &Expr, expected: Option<Ty>, actual: Ty) -> Result<Ty, Diagnostic> {
         match expected {
-            Some(x) if x != actual => Err(self.diag(e, "TYP001", format!("expected {}, found {}", x.name(), actual.name()))),
+            Some(x) if x != actual => Err(self.diag(
+                e,
+                "TYP001",
+                format!("expected {}, found {}", x.name(), actual.name()),
+            )),
             _ => Ok(actual),
         }
     }
@@ -109,19 +122,35 @@ impl Ctx<'_> {
     fn expr(&self, e: &Expr, expected: Option<Ty>) -> Result<Ty, Diagnostic> {
         match &e.kind {
             ExprKind::Int(text) => {
-                let value: u64 = text
-                    .parse()
-                    .map_err(|_| self.diag(e, "TYP002", format!("literal {text} does not fit any supported type")))?;
+                let value: u64 = text.parse().map_err(|_| {
+                    self.diag(
+                        e,
+                        "TYP002",
+                        format!("literal {text} does not fit any supported type"),
+                    )
+                })?;
                 let ty = match expected {
                     Some(t @ (Ty::I32 | Ty::U32)) => t,
                     Some(other) => {
-                        return Err(self.diag(e, "TYP001", format!("expected {}, found integer", other.name())));
+                        return Err(self.diag(
+                            e,
+                            "TYP001",
+                            format!("expected {}, found integer", other.name()),
+                        ));
                     }
                     None => Ty::I32,
                 };
-                let max = if ty == Ty::U32 { u64::from(u32::MAX) } else { u64::from(i32::MAX as u32) };
+                let max = if ty == Ty::U32 {
+                    u64::from(u32::MAX)
+                } else {
+                    u64::from(i32::MAX as u32)
+                };
                 if value > max {
-                    return Err(self.diag(e, "TYP002", format!("literal {value} does not fit {}", ty.name())));
+                    return Err(self.diag(
+                        e,
+                        "TYP002",
+                        format!("literal {value} does not fit {}", ty.name()),
+                    ));
                 }
                 Ok(ty)
             }
@@ -138,15 +167,18 @@ impl Ctx<'_> {
             }
             ExprKind::Group(inner) => self.expr(inner, expected),
             ExprKind::Call { callee, args } => {
-                let sig = self
-                    .sigs
-                    .get(callee)
-                    .ok_or_else(|| self.diag(e, "RES001", format!("unknown function '{callee}'")))?;
+                let sig = self.sigs.get(callee).ok_or_else(|| {
+                    self.diag(e, "RES001", format!("unknown function '{callee}'"))
+                })?;
                 if args.len() != sig.params.len() {
                     return Err(self.diag(
                         e,
                         "TYP003",
-                        format!("'{callee}' takes {} argument(s), got {}", sig.params.len(), args.len()),
+                        format!(
+                            "'{callee}' takes {} argument(s), got {}",
+                            sig.params.len(),
+                            args.len()
+                        ),
                     ));
                 }
                 for eff in &sig.uses {
@@ -171,7 +203,11 @@ impl Ctx<'_> {
                 BinOp::Add | BinOp::Sub | BinOp::Mul => {
                     let t = self.operands(lhs, rhs, expected)?;
                     if matches!(t, Ty::Bool | Ty::Unit) {
-                        return Err(self.diag(e, "TYP001", format!("operator {} needs integer operands", op.symbol())));
+                        return Err(self.diag(
+                            e,
+                            "TYP001",
+                            format!("operator {} needs integer operands", op.symbol()),
+                        ));
                     }
                     Ok(t)
                 }

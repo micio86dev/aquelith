@@ -27,7 +27,10 @@ pub mod string_tokens {
 
     impl TokenTable {
         pub fn grant(&mut self, token: &str, host: &str) {
-            self.grants.entry(token.to_string()).or_default().push(host.to_string());
+            self.grants
+                .entry(token.to_string())
+                .or_default()
+                .push(host.to_string());
         }
 
         pub fn check(&self, token: &StringToken, host: &str) -> bool {
@@ -69,7 +72,9 @@ pub mod capabilities {
         }
 
         pub fn net(&self, hosts: &[&str]) -> NetCap {
-            NetCap { hosts: hosts.iter().map(|h| h.to_string()).collect() }
+            NetCap {
+                hosts: hosts.iter().map(|h| h.to_string()).collect(),
+            }
         }
     }
 
@@ -78,7 +83,9 @@ pub mod capabilities {
             if self.hosts.iter().any(|h| h == host) {
                 Ok(format!("connected:{host}"))
             } else {
-                Err(Denied::NotInScope { host: host.to_string() })
+                Err(Denied::NotInScope {
+                    host: host.to_string(),
+                })
             }
         }
 
@@ -86,10 +93,14 @@ pub mod capabilities {
         pub fn narrow(&self, hosts: &[&str]) -> Result<NetCap, Denied> {
             for h in hosts {
                 if !self.hosts.iter().any(|x| x == h) {
-                    return Err(Denied::NotInScope { host: h.to_string() });
+                    return Err(Denied::NotInScope {
+                        host: h.to_string(),
+                    });
                 }
             }
-            Ok(NetCap { hosts: hosts.iter().map(|h| h.to_string()).collect() })
+            Ok(NetCap {
+                hosts: hosts.iter().map(|h| h.to_string()).collect(),
+            })
         }
     }
 

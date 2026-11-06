@@ -23,10 +23,20 @@ const TOOLS: &str = r#"[
 pub fn handle_line(line: &str) -> Option<String> {
     let msg = match json::parse(line) {
         Ok(m) => m,
-        Err(e) => return Some(error_reply(&Json::Null, -32700, &format!("parse error: {e}"))),
+        Err(e) => {
+            return Some(error_reply(
+                &Json::Null,
+                -32700,
+                &format!("parse error: {e}"),
+            ))
+        }
     };
     if !matches!(msg, Json::Obj(_)) {
-        return Some(error_reply(&Json::Null, -32600, "batches are not supported"));
+        return Some(error_reply(
+            &Json::Null,
+            -32600,
+            "batches are not supported",
+        ));
     }
     // A message without an id is a notification and gets no reply.
     let id = msg.get("id")?.clone();
@@ -106,7 +116,10 @@ fn call(id: &Json, params: Option<&Json>) -> String {
 
 /// Tool result envelope. `text` is itself JSON or plain text; it is sent as a string.
 fn content(text: &str, is_error: bool) -> String {
-    format!("{{\"content\":[{{\"type\":\"text\",\"text\":{}}}],\"isError\":{is_error}}}", jstr(text))
+    format!(
+        "{{\"content\":[{{\"type\":\"text\",\"text\":{}}}],\"isError\":{is_error}}}",
+        jstr(text)
+    )
 }
 
 fn id_json(id: &Json) -> String {
@@ -118,11 +131,18 @@ fn id_json(id: &Json) -> String {
 }
 
 fn ok_reply(id: &Json, result: &str) -> String {
-    format!("{{\"jsonrpc\":\"2.0\",\"id\":{},\"result\":{result}}}", id_json(id))
+    format!(
+        "{{\"jsonrpc\":\"2.0\",\"id\":{},\"result\":{result}}}",
+        id_json(id)
+    )
 }
 
 fn error_reply(id: &Json, code: i64, message: &str) -> String {
-    format!("{{\"jsonrpc\":\"2.0\",\"id\":{},\"error\":{{\"code\":{code},\"message\":{}}}}}", id_json(id), jstr(message))
+    format!(
+        "{{\"jsonrpc\":\"2.0\",\"id\":{},\"error\":{{\"code\":{code},\"message\":{}}}}}",
+        id_json(id),
+        jstr(message)
+    )
 }
 
 /// Largest request body accepted over HTTP (1 MiB).
@@ -132,7 +152,10 @@ const MAX_BODY: usize = 1 << 20;
 /// reply, or 202 with no body for a notification. Only loopback peers are meant to reach it: the
 /// `Host` header must name localhost, which blocks DNS rebinding from a web page. `max_requests`
 /// stops the loop after that many connections (for tests); None serves until an error.
-pub fn serve_http(listener: &std::net::TcpListener, max_requests: Option<usize>) -> std::io::Result<()> {
+pub fn serve_http(
+    listener: &std::net::TcpListener,
+    max_requests: Option<usize>,
+) -> std::io::Result<()> {
     for (served, stream) in listener.incoming().enumerate() {
         let mut stream = stream?;
         // A broken client must not stop the server: its I/O error ends only its connection.
@@ -174,15 +197,20 @@ fn handle_connection(stream: &mut std::net::TcpStream) -> std::io::Result<()> {
         }
     }
 
-    let respond = |stream: &mut std::net::TcpStream, status: &str, body: &str| -> std::io::Result<()> {
-        let type_line = if body.is_empty() { "" } else { "Content-Type: application/json\r\n" };
-        write!(
+    let respond =
+        |stream: &mut std::net::TcpStream, status: &str, body: &str| -> std::io::Result<()> {
+            let type_line = if body.is_empty() {
+                ""
+            } else {
+                "Content-Type: application/json\r\n"
+            };
+            write!(
             stream,
             "HTTP/1.1 {status}\r\n{type_line}Content-Length: {}\r\nConnection: close\r\n\r\n{body}",
             body.len()
         )?;
-        stream.flush()
-    };
+            stream.flush()
+        };
 
     if !host.as_deref().is_some_and(is_local_host) {
         return respond(stream, "403 Forbidden", "");

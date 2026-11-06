@@ -39,11 +39,17 @@ impl IdIndex {
     }
 
     pub fn id_of(&self, name: &str) -> Option<&str> {
-        self.entries.iter().find(|(_, n)| n == name).map(|(id, _)| id.as_str())
+        self.entries
+            .iter()
+            .find(|(_, n)| n == name)
+            .map(|(id, _)| id.as_str())
     }
 
     pub fn name_of(&self, id: &str) -> Option<&str> {
-        self.entries.iter().find(|(i, _)| i == id).map(|(_, n)| n.as_str())
+        self.entries
+            .iter()
+            .find(|(i, _)| i == id)
+            .map(|(_, n)| n.as_str())
     }
 
     /// Keeps the id of `old` and gives it the name `new`. Returns false if `old` is not indexed.
@@ -83,7 +89,11 @@ impl IdIndex {
             .iter()
             .map(|(id, name)| format!("{{\"id\":{},\"name\":{}}}", jstr(id), jstr(name)))
             .collect();
-        format!("{{\"api\":{},\"functions\":[{}]}}\n", jstr(API), items.join(","))
+        format!(
+            "{{\"api\":{},\"functions\":[{}]}}\n",
+            jstr(API),
+            items.join(",")
+        )
     }
 
     /// Reads an index file. Rejects a wrong api version, malformed ids, and duplicate ids or names.
@@ -92,12 +102,25 @@ impl IdIndex {
         if doc.get("api").and_then(Json::as_str) != Some(API) {
             return Err(format!("api must be \"{API}\""));
         }
-        let items = doc.get("functions").and_then(Json::as_array).ok_or("functions must be an array")?;
+        let items = doc
+            .get("functions")
+            .and_then(Json::as_array)
+            .ok_or("functions must be an array")?;
         let mut index = IdIndex::default();
         for item in items {
-            let id = item.get("id").and_then(Json::as_str).ok_or("each entry needs a string id")?;
-            let name = item.get("name").and_then(Json::as_str).ok_or("each entry needs a string name")?;
-            if id.len() != 32 || !id.bytes().all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase()) {
+            let id = item
+                .get("id")
+                .and_then(Json::as_str)
+                .ok_or("each entry needs a string id")?;
+            let name = item
+                .get("name")
+                .and_then(Json::as_str)
+                .ok_or("each entry needs a string name")?;
+            if id.len() != 32
+                || !id
+                    .bytes()
+                    .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
+            {
                 return Err(format!("malformed id '{id}'"));
             }
             if index.name_of(id).is_some() || index.id_of(name).is_some() {
@@ -125,7 +148,11 @@ mod tests {
     fn json_round_trips() {
         let mut next = counter();
         let mut index = IdIndex::default();
-        let m = Module { name: "m".into(), items: vec![], pages: vec![] };
+        let m = Module {
+            name: "m".into(),
+            items: vec![],
+            pages: vec![],
+        };
         index.sync(&m, &mut next);
         assert_eq!(IdIndex::from_json(&index.to_json()).unwrap(), index);
     }
@@ -133,7 +160,10 @@ mod tests {
     #[test]
     fn malformed_files_are_rejected() {
         assert!(IdIndex::from_json("{}").is_err());
-        assert!(IdIndex::from_json(r#"{"api":"aqelith.ids.v1","functions":[{"id":"XY","name":"f"}]}"#).is_err());
+        assert!(IdIndex::from_json(
+            r#"{"api":"aqelith.ids.v1","functions":[{"id":"XY","name":"f"}]}"#
+        )
+        .is_err());
         let dup = format!(
             r#"{{"api":"aqelith.ids.v1","functions":[{{"id":"{0}","name":"f"}},{{"id":"{0}","name":"g"}}]}}"#,
             "0".repeat(32)
@@ -146,7 +176,9 @@ mod tests {
         let a = random_id().unwrap();
         let b = random_id().unwrap();
         assert_eq!(a.len(), 32);
-        assert!(a.bytes().all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase()));
+        assert!(a
+            .bytes()
+            .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase()));
         assert_ne!(a, b);
     }
 }

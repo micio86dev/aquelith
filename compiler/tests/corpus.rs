@@ -1,10 +1,12 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use aqelith::{check_source, diag, format_source, query, parser};
+use aqelith::{check_source, diag, format_source, parser, query};
 
 fn corpus(kind: &str) -> Vec<PathBuf> {
-    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/corpus").join(kind);
+    let dir = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("tests/corpus")
+        .join(kind);
     let mut files: Vec<PathBuf> = fs::read_dir(&dir)
         .unwrap_or_else(|e| panic!("{}: {e}", dir.display()))
         .map(|e| e.unwrap().path())
@@ -43,7 +45,12 @@ fn rejected_programs_report_their_own_code_first() {
         let stem = f.file_stem().unwrap().to_string_lossy().to_string();
         let expected = stem.split('_').next().unwrap();
         let d = check_source(&read(&f));
-        assert_eq!(d.first().map(|x| x.code), Some(expected), "{}: {d:?}", f.display());
+        assert_eq!(
+            d.first().map(|x| x.code),
+            Some(expected),
+            "{}: {d:?}",
+            f.display()
+        );
     }
 }
 
@@ -51,26 +58,53 @@ fn rejected_programs_report_their_own_code_first() {
 fn every_documented_code_has_a_reject_fixture() {
     let stems: Vec<String> = corpus("reject")
         .iter()
-        .map(|f| f.file_stem().unwrap().to_string_lossy().split('_').next().unwrap().to_string())
+        .map(|f| {
+            f.file_stem()
+                .unwrap()
+                .to_string_lossy()
+                .split('_')
+                .next()
+                .unwrap()
+                .to_string()
+        })
         .collect();
     // PAT codes come from patch documents, not source files; tests/patch.rs covers them.
-    for (code, _) in diag::CODES.iter().filter(|(code, _)| !code.starts_with("PAT")) {
-        assert!(stems.iter().any(|s| s == code), "no reject fixture for {code}");
+    for (code, _) in diag::CODES
+        .iter()
+        .filter(|(code, _)| !code.starts_with("PAT"))
+    {
+        assert!(
+            stems.iter().any(|s| s == code),
+            "no reject fixture for {code}"
+        );
     }
 }
 
 #[test]
 fn every_fixture_code_is_documented() {
     for f in corpus("reject") {
-        let code = f.file_stem().unwrap().to_string_lossy().split('_').next().unwrap().to_string();
+        let code = f
+            .file_stem()
+            .unwrap()
+            .to_string_lossy()
+            .split('_')
+            .next()
+            .unwrap()
+            .to_string();
         assert!(diag::explain(&code).is_some(), "{code} has no explanation");
     }
 }
 
 #[test]
 fn golden_formatting_of_groups() {
-    let out = format_source(&read(&Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/corpus/accept/groups.aq"))).unwrap();
-    assert_eq!(out, "module groups\n\nfn f(a: u32) -> u32 {\n    (a + 1) * 2\n}\n");
+    let out = format_source(&read(
+        &Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/corpus/accept/groups.aq"),
+    ))
+    .unwrap();
+    assert_eq!(
+        out,
+        "module groups\n\nfn f(a: u32) -> u32 {\n    (a + 1) * 2\n}\n"
+    );
 }
 
 #[test]

@@ -23,7 +23,9 @@ fn format_page(p: &Page) -> String {
             PageItem::Title(t) => format!("title \"{}\";", t.value),
             PageItem::Heading { level, text } => format!("h{level} \"{}\";", text.value),
             PageItem::Para(t) => format!("p \"{}\";", t.value),
-            PageItem::Link { label, href } => format!("link \"{}\" \"{}\";", label.value, href.value),
+            PageItem::Link { label, href } => {
+                format!("link \"{}\" \"{}\";", label.value, href.value)
+            }
         };
         out.push_str("    ");
         out.push_str(&line);
@@ -34,7 +36,11 @@ fn format_page(p: &Page) -> String {
 }
 
 fn format_fn(f: &FnDef) -> String {
-    let params: Vec<String> = f.params.iter().map(|p| format!("{}: {}", p.name, p.ty.name())).collect();
+    let params: Vec<String> = f
+        .params
+        .iter()
+        .map(|p| format!("{}: {}", p.name, p.ty.name()))
+        .collect();
     let mut head = format!("fn {}({})", f.name, params.join(", "));
     if f.ret != Ty::Unit {
         head.push_str(&format!(" -> {}", f.ret.name()));
@@ -59,7 +65,12 @@ fn format_fn(f: &FnDef) -> String {
 
 fn format_stmt(s: &Stmt) -> String {
     match s {
-        Stmt::Let { name, mutable, ty, value } => {
+        Stmt::Let {
+            name,
+            mutable,
+            ty,
+            value,
+        } => {
             let mut_kw = if *mutable { "mut " } else { "" };
             let annot = ty.map_or(String::new(), |t| format!(": {}", t.name()));
             format!("let {mut_kw}{name}{annot} = {};", expr(value, 0))
@@ -71,7 +82,9 @@ fn format_stmt(s: &Stmt) -> String {
 /// `needed` is the minimum precedence the surrounding context accepts without parentheses.
 fn expr(e: &Expr, needed: u8) -> String {
     match &e.kind {
-        ExprKind::Int(text) => text.parse::<u64>().map_or_else(|_| text.clone(), |v| v.to_string()),
+        ExprKind::Int(text) => text
+            .parse::<u64>()
+            .map_or_else(|_| text.clone(), |v| v.to_string()),
         ExprKind::Bool(b) => b.to_string(),
         ExprKind::Ident(n) => n.clone(),
         ExprKind::Call { callee, args } => {
@@ -83,7 +96,12 @@ fn expr(e: &Expr, needed: u8) -> String {
             let p = op.prec();
             // Equality is non-associative, so a left child of equal precedence also needs parentheses.
             let left_needed = if *op == BinOp::Eq { p + 1 } else { p };
-            let s = format!("{} {} {}", expr(lhs, left_needed), op.symbol(), expr(rhs, p + 1));
+            let s = format!(
+                "{} {} {}",
+                expr(lhs, left_needed),
+                op.symbol(),
+                expr(rhs, p + 1)
+            );
             if p < needed {
                 format!("({s})")
             } else {

@@ -34,19 +34,36 @@ fn top() -> i32 {
 #[test]
 fn a_missing_effect_is_proposed_and_the_patch_fixes_the_program() {
     let doc = propose(MISSING_DIRECT).unwrap().expect("a fix is needed");
-    assert!(doc.contains(r#""op":"add-effect","target":"main""#), "{doc}");
+    assert!(
+        doc.contains(r#""op":"add-effect","target":"main""#),
+        "{doc}"
+    );
     let accepted = apply(MISSING_DIRECT, &doc).expect("the proposal is verified by the patch API");
-    assert!(accepted.text.contains("fn main() -> i32 uses io, net {"), "{}", accepted.text);
+    assert!(
+        accepted.text.contains("fn main() -> i32 uses io, net {"),
+        "{}",
+        accepted.text
+    );
     assert!(check_source(&accepted.text).is_empty());
 }
 
 #[test]
 fn a_fix_propagates_to_callers_until_nothing_is_missing() {
-    let doc = propose(MISSING_TRANSITIVE).unwrap().expect("fixes are needed");
+    let doc = propose(MISSING_TRANSITIVE)
+        .unwrap()
+        .expect("fixes are needed");
     let accepted = apply(MISSING_TRANSITIVE, &doc).unwrap();
-    assert!(accepted.text.contains("fn middle() -> i32 uses io, net {"), "{}", accepted.text);
+    assert!(
+        accepted.text.contains("fn middle() -> i32 uses io, net {"),
+        "{}",
+        accepted.text
+    );
     // top calls middle, which now needs io and net, so top declares both.
-    assert!(accepted.text.contains("fn top() -> i32 uses io, net {"), "{}", accepted.text);
+    assert!(
+        accepted.text.contains("fn top() -> i32 uses io, net {"),
+        "{}",
+        accepted.text
+    );
     assert!(check_source(&accepted.text).is_empty());
 }
 
@@ -58,7 +75,10 @@ fn a_clean_program_needs_no_change() {
 
 #[test]
 fn the_proposal_is_deterministic() {
-    assert_eq!(propose(MISSING_TRANSITIVE).unwrap(), propose(MISSING_TRANSITIVE).unwrap());
+    assert_eq!(
+        propose(MISSING_TRANSITIVE).unwrap(),
+        propose(MISSING_TRANSITIVE).unwrap()
+    );
 }
 
 #[test]

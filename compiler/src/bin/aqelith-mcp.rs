@@ -25,7 +25,10 @@ fn serve_stdio() -> std::process::ExitCode {
             continue;
         }
         if let Some(reply) = aqelith::mcp::handle_line(&line) {
-            if writeln!(stdout, "{reply}").and_then(|()| stdout.flush()).is_err() {
+            if writeln!(stdout, "{reply}")
+                .and_then(|()| stdout.flush())
+                .is_err()
+            {
                 return std::process::ExitCode::from(2);
             }
         }

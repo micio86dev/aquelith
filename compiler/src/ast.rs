@@ -1,7 +1,18 @@
 //! Syntax tree for the v0 subset (ADR-0009). Spans are byte offsets.
 
 /// Core effect set. Fixed in v0; unknown names are EFF002 (docs/security/EFFECT_SYSTEM.md).
-pub const EFFECTS: &[&str] = &["io", "fs", "net", "time", "rand", "env", "proc", "concurrency", "ui", "unsafe"];
+pub const EFFECTS: &[&str] = &[
+    "io",
+    "fs",
+    "net",
+    "time",
+    "rand",
+    "env",
+    "proc",
+    "concurrency",
+    "ui",
+    "unsafe",
+];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Ty {
@@ -74,15 +85,27 @@ pub enum ExprKind {
     Int(String),
     Bool(bool),
     Ident(String),
-    Call { callee: String, args: Vec<Expr> },
-    Bin { op: BinOp, lhs: Box<Expr>, rhs: Box<Expr> },
+    Call {
+        callee: String,
+        args: Vec<Expr>,
+    },
+    Bin {
+        op: BinOp,
+        lhs: Box<Expr>,
+        rhs: Box<Expr>,
+    },
     /// Parenthesized expression. The formatter drops parentheses that precedence does not need.
     Group(Box<Expr>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Stmt {
-    Let { name: String, mutable: bool, ty: Option<Ty>, value: Expr },
+    Let {
+        name: String,
+        mutable: bool,
+        ty: Option<Ty>,
+        value: Expr,
+    },
     Expr(Expr),
 }
 
@@ -129,9 +152,15 @@ pub struct Text {
 pub enum PageItem {
     Title(Text),
     /// Level 1 or 2.
-    Heading { level: u8, text: Text },
+    Heading {
+        level: u8,
+        text: Text,
+    },
     Para(Text),
-    Link { label: Text, href: Text },
+    Link {
+        label: Text,
+        href: Text,
+    },
 }
 
 /// A page: a name, a route path and content statements in source order.

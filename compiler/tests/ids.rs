@@ -28,12 +28,19 @@ fn scratch(name: &str, text: &str) -> PathBuf {
 }
 
 fn cli(args: &[&str]) -> (i32, String) {
-    let out = Command::new(env!("CARGO_BIN_EXE_aqelith")).args(args).output().unwrap();
-    (out.status.code().unwrap_or(-1), String::from_utf8_lossy(&out.stdout).into_owned())
+    let out = Command::new(env!("CARGO_BIN_EXE_aqelith"))
+        .args(args)
+        .output()
+        .unwrap();
+    (
+        out.status.code().unwrap_or(-1),
+        String::from_utf8_lossy(&out.stdout).into_owned(),
+    )
 }
 
 fn index_of(file: &Path) -> IdIndex {
-    let text = std::fs::read_to_string(format!("{}.ids.json", file.display())).expect("index exists");
+    let text =
+        std::fs::read_to_string(format!("{}.ids.json", file.display())).expect("index exists");
     IdIndex::from_json(&text).unwrap()
 }
 
@@ -52,7 +59,14 @@ fn run_patch(file: &Path, doc: &str, extra: &[&str]) -> (i32, String) {
 #[test]
 fn rename_by_id_keeps_the_id() {
     let file = scratch("rename", SRC);
-    let (code, _) = run_patch(&file, &format!(r#"{{"api":"aqelith.patch.v1","base":"{}","ops":[]}}"#, base(SRC)), &[]);
+    let (code, _) = run_patch(
+        &file,
+        &format!(
+            r#"{{"api":"aqelith.patch.v1","base":"{}","ops":[]}}"#,
+            base(SRC)
+        ),
+        &[],
+    );
     assert_eq!(code, 0, "an empty patch is accepted and creates the index");
     let id = index_of(&file).id_of("add1").unwrap().to_string();
 
@@ -63,7 +77,11 @@ fn rename_by_id_keeps_the_id() {
     let (code, out) = run_patch(&file, &doc, &[]);
     assert_eq!(code, 0, "{out}");
     let index = index_of(&file);
-    assert_eq!(index.id_of("inc"), Some(id.as_str()), "the renamed function keeps its id");
+    assert_eq!(
+        index.id_of("inc"),
+        Some(id.as_str()),
+        "the renamed function keeps its id"
+    );
     assert_eq!(index.id_of("add1"), None);
     assert!(std::fs::read_to_string(&file).unwrap().contains("fn inc("));
 }
@@ -71,7 +89,14 @@ fn rename_by_id_keeps_the_id() {
 #[test]
 fn same_name_replace_keeps_the_id_and_a_deleted_id_is_never_reused() {
     let file = scratch("replace", SRC);
-    run_patch(&file, &format!(r#"{{"api":"aqelith.patch.v1","base":"{}","ops":[]}}"#, base(SRC)), &[]);
+    run_patch(
+        &file,
+        &format!(
+            r#"{{"api":"aqelith.patch.v1","base":"{}","ops":[]}}"#,
+            base(SRC)
+        ),
+        &[],
+    );
     let before = index_of(&file);
     let add1_id = before.id_of("add1").unwrap().to_string();
     let main_id = before.id_of("main").unwrap().to_string();
@@ -94,10 +119,18 @@ fn same_name_replace_keeps_the_id_and_a_deleted_id_is_never_reused() {
     // Deleting add1 here would break main, so the deletion case uses a helper that nothing calls.
     let with_unused = format!("{SRC}\nfn unused() -> i32 {{\n    0\n}}\n");
     let file2 = scratch("reuse", &with_unused);
-    run_patch(&file2, &format!(r#"{{"api":"aqelith.patch.v1","base":"{}","ops":[]}}"#, base(&with_unused)), &[]);
+    run_patch(
+        &file2,
+        &format!(
+            r#"{{"api":"aqelith.patch.v1","base":"{}","ops":[]}}"#,
+            base(&with_unused)
+        ),
+        &[],
+    );
     let unused_id = index_of(&file2).id_of("unused").unwrap().to_string();
     let module = aqelith::parser::parse(&with_unused).unwrap();
-    let unused_hash = aqelith::patch::fn_hash(module.items.iter().find(|f| f.name == "unused").unwrap());
+    let unused_hash =
+        aqelith::patch::fn_hash(module.items.iter().find(|f| f.name == "unused").unwrap());
     let delete = format!(
         r#"{{"api":"aqelith.patch.v1","base":"{}","ops":[{{"op":"delete","target":"unused","expect":{{"hash":"{unused_hash}"}}}}]}}"#,
         base(&with_unused)
@@ -153,10 +186,17 @@ fn a_dry_run_writes_neither_the_source_nor_the_index() {
 fn a_damaged_index_file_is_reported_not_ignored() {
     let file = scratch("damaged", SRC);
     std::fs::write(format!("{}.ids.json", file.display()), "{\"api\":\"nope\"}").unwrap();
-    let doc = format!(r#"{{"api":"aqelith.patch.v1","base":"{}","ops":[]}}"#, base(SRC));
+    let doc = format!(
+        r#"{{"api":"aqelith.patch.v1","base":"{}","ops":[]}}"#,
+        base(SRC)
+    );
     let (code, _) = run_patch(&file, &doc, &[]);
     assert_eq!(code, 2);
-    assert_eq!(std::fs::read_to_string(&file).unwrap(), SRC, "the source is untouched");
+    assert_eq!(
+        std::fs::read_to_string(&file).unwrap(),
+        SRC,
+        "the source is untouched"
+    );
 }
 
 #[test]
@@ -165,6 +205,14 @@ fn the_index_file_is_valid_json_with_the_documented_shape() {
     let (code, out) = cli(&["ids", file.to_str().unwrap()]);
     assert_eq!(code, 0);
     let doc = aqelith::json::parse(&out).unwrap();
-    assert_eq!(doc.get("api").and_then(Json::as_str), Some("aqelith.ids.v1"));
-    assert_eq!(doc.get("functions").and_then(Json::as_array).map(|a| a.len()), Some(2));
+    assert_eq!(
+        doc.get("api").and_then(Json::as_str),
+        Some("aqelith.ids.v1")
+    );
+    assert_eq!(
+        doc.get("functions")
+            .and_then(Json::as_array)
+            .map(|a| a.len()),
+        Some(2)
+    );
 }

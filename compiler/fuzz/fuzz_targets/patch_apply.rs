@@ -4,9 +4,16 @@
 use libfuzzer_sys::fuzz_target;
 
 fuzz_target!(|data: &[u8]| {
-    let Ok(text) = std::str::from_utf8(data) else { return };
-    let Some((src, doc)) = text.split_once('\u{1e}') else { return };
+    let Ok(text) = std::str::from_utf8(data) else {
+        return;
+    };
+    let Some((src, doc)) = text.split_once('\u{1e}') else {
+        return;
+    };
     if let Ok(accepted) = aqelith::patch::apply(src, doc) {
-        assert!(aqelith::check_source(&accepted.text).is_empty(), "accepted candidate fails the checker");
+        assert!(
+            aqelith::check_source(&accepted.text).is_empty(),
+            "accepted candidate fails the checker"
+        );
     }
 });

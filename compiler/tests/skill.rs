@@ -21,7 +21,14 @@ fn skill_names_every_diagnostic_code() {
 #[test]
 fn skill_names_every_command() {
     let text = skill_text();
-    for cmd in ["aqelith check", "aqelith fmt", "aqelith query", "aqelith patch", "aqelith ids", "aqelith explain"] {
+    for cmd in [
+        "aqelith check",
+        "aqelith fmt",
+        "aqelith query",
+        "aqelith patch",
+        "aqelith ids",
+        "aqelith explain",
+    ] {
         assert!(text.contains(cmd), "SKILL.md does not mention `{cmd}`");
     }
 }
@@ -29,5 +36,8 @@ fn skill_names_every_command() {
 #[test]
 fn skill_has_frontmatter_name_and_description() {
     let text = skill_text();
-    assert!(text.starts_with("---\nname: aqelith\ndescription: "), "bad frontmatter");
+    assert!(
+        text.starts_with("---\nname: aqelith\ndescription: "),
+        "bad frontmatter"
+    );
 }

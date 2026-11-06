@@ -31,18 +31,49 @@ pub fn graph_hash(canonical: &str) -> String {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Op {
-    Rename { target: String, expect: String, to: String },
-    SetReturn { target: String, expect: Ty, to: Ty },
-    AddEffect { target: String, expect: Vec<String>, to: String },
-    RemoveEffect { target: String, expect: Vec<String>, to: String },
+    Rename {
+        target: String,
+        expect: String,
+        to: String,
+    },
+    SetReturn {
+        target: String,
+        expect: Ty,
+        to: Ty,
+    },
+    AddEffect {
+        target: String,
+        expect: Vec<String>,
+        to: String,
+    },
+    RemoveEffect {
+        target: String,
+        expect: Vec<String>,
+        to: String,
+    },
     /// Removes the function named `target` when its content hash is `expect`.
-    Delete { target: String, expect: String },
+    Delete {
+        target: String,
+        expect: String,
+    },
     /// Replaces the function named `target` when its content hash is `expect`.
-    Replace { target: String, expect: String, with: FnDef },
+    Replace {
+        target: String,
+        expect: String,
+        with: FnDef,
+    },
     /// Inserts `with` right after the function named `target` (the anchor).
-    Insert { target: String, with: FnDef },
+    Insert {
+        target: String,
+        with: FnDef,
+    },
     /// Changes the type of parameter `param` of `target`, when its current type is `expect`.
-    SetParamType { target: String, param: String, expect: Ty, to: Ty },
+    SetParamType {
+        target: String,
+        param: String,
+        expect: Ty,
+        to: Ty,
+    },
 }
 
 impl Op {
@@ -76,13 +107,21 @@ impl Op {
 /// Content hash of one function: the graph hash of its canonical text on its own.
 /// Used as the precondition of delete and replace; persistent ids (ids.rs) name the function.
 pub fn fn_hash(f: &FnDef) -> String {
-    graph_hash(&format::format_module(&Module { name: String::new(), items: vec![f.clone()], pages: Vec::new() }))
+    graph_hash(&format::format_module(&Module {
+        name: String::new(),
+        items: vec![f.clone()],
+        pages: Vec::new(),
+    }))
 }
 
 /// Parses the text of one function definition for `with`. Anything but exactly one function is malformed.
 fn parse_fn_source(i: usize, text: &str) -> Result<FnDef, Fail> {
-    let module = parser::parse(&format!("module m\n{text}"))
-        .map_err(|d| malformed(Some(i), format!("'with' is not a valid function: {}", d.message)))?;
+    let module = parser::parse(&format!("module m\n{text}")).map_err(|d| {
+        malformed(
+            Some(i),
+            format!("'with' is not a valid function: {}", d.message),
+        )
+    })?;
     let mut items = module.items;
     if items.len() != 1 {
         return Err(malformed(Some(i), "'with' must hold exactly one function"));
@@ -117,7 +156,15 @@ pub struct Accepted {
 type Fail = Box<Rejection>;
 
 fn reject(code: &'static str, kind: &'static str, message: impl Into<String>) -> Fail {
-    Box::new(Rejection { code, kind, op: None, expected: None, actual: None, message: message.into(), diagnostics: Vec::new() })
+    Box::new(Rejection {
+        code,
+        kind,
+        op: None,
+        expected: None,
+        actual: None,
+        message: message.into(),
+        diagnostics: Vec::new(),
+    })
 }
 
 fn malformed(op: Option<usize>, message: impl Into<String>) -> Fail {
@@ -169,8 +216,13 @@ fn parse_ops(doc: &Json) -> Result<(String, Vec<Op>), Fail> {
     if field(doc, "api") != Some(API) {
         return Err(malformed(None, format!("api must be \"{API}\"")));
     }
-    let base = field(doc, "base").ok_or_else(|| malformed(None, "base must be a string"))?.to_string();
-    let items = doc.get("ops").and_then(Json::as_array).ok_or_else(|| malformed(None, "ops must be an array"))?;
+    let base = field(doc, "base")
+        .ok_or_else(|| malformed(None, "base must be a string"))?
+        .to_string();
+    let items = doc
+        .get("ops")
+        .and_then(Json::as_array)
+        .ok_or_else(|| malformed(None, "ops must be an array"))?;
     let mut ops = Vec::with_capacity(items.len());
     for (i, item) in items.iter().enumerate() {
         ops.push(parse_op(i, item)?);
@@ -181,25 +233,51 @@ fn parse_ops(doc: &Json) -> Result<(String, Vec<Op>), Fail> {
 fn parse_op(i: usize, j: &Json) -> Result<Op, Fail> {
     let at = |msg: &str| malformed(Some(i), msg.to_string());
     let kind = field(j, "op").ok_or_else(|| at("op must be a string"))?;
-    let target = field(j, "target").ok_or_else(|| at("target must be a function name"))?.to_string();
+    let target = field(j, "target")
+        .ok_or_else(|| at("target must be a function name"))?
+        .to_string();
     let no_expect = Json::Obj(Vec::new());
     let expect = j.get("expect").unwrap_or(&no_expect);
     if matches!(kind, "delete" | "replace") {
-        let hash = field(expect, "hash").ok_or_else(|| at("expect.hash must be a string"))?.to_string();
+        let hash = field(expect, "hash")
+            .ok_or_else(|| at("expect.hash must be a string"))?
+            .to_string();
         if kind == "delete" {
-            return Ok(Op::Delete { target, expect: hash });
+            return Ok(Op::Delete {
+                target,
+                expect: hash,
+            });
         }
-        let with = parse_fn_source(i, field(j, "with").ok_or_else(|| at("with must be a function source string"))?)?;
-        return Ok(Op::Replace { target, expect: hash, with });
+        let with = parse_fn_source(
+            i,
+            field(j, "with").ok_or_else(|| at("with must be a function source string"))?,
+        )?;
+        return Ok(Op::Replace {
+            target,
+            expect: hash,
+            with,
+        });
     }
     if kind == "insert" {
-        let with = parse_fn_source(i, field(j, "with").ok_or_else(|| at("with must be a function source string"))?)?;
+        let with = parse_fn_source(
+            i,
+            field(j, "with").ok_or_else(|| at("with must be a function source string"))?,
+        )?;
         return Ok(Op::Insert { target, with });
     }
     let to = field(j, "to").ok_or_else(|| at("to must be a string"))?;
     let effects = |key: &str| -> Result<Vec<String>, Fail> {
-        let arr = expect.get(key).and_then(Json::as_array).ok_or_else(|| at("expect.uses must be an array"))?;
-        arr.iter().map(|v| v.as_str().map(str::to_string).ok_or_else(|| at("expect.uses must hold strings"))).collect()
+        let arr = expect
+            .get(key)
+            .and_then(Json::as_array)
+            .ok_or_else(|| at("expect.uses must be an array"))?;
+        arr.iter()
+            .map(|v| {
+                v.as_str()
+                    .map(str::to_string)
+                    .ok_or_else(|| at("expect.uses must hold strings"))
+            })
+            .collect()
     };
     let effect_name = || -> Result<String, Fail> {
         if EFFECTS.contains(&to) {
@@ -211,21 +289,48 @@ fn parse_op(i: usize, j: &Json) -> Result<Op, Fail> {
     match kind {
         "rename" => {
             let old = field(expect, "name").ok_or_else(|| at("expect.name must be a string"))?;
-            Ok(Op::Rename { target, expect: old.to_string(), to: to.to_string() })
+            Ok(Op::Rename {
+                target,
+                expect: old.to_string(),
+                to: to.to_string(),
+            })
         }
         "set-return" => {
-            let old = field(expect, "ret").and_then(Ty::from_name).ok_or_else(|| at("expect.ret must be a type"))?;
+            let old = field(expect, "ret")
+                .and_then(Ty::from_name)
+                .ok_or_else(|| at("expect.ret must be a type"))?;
             let new = Ty::from_name(to).ok_or_else(|| at(&format!("unknown type '{to}'")))?;
-            Ok(Op::SetReturn { target, expect: old, to: new })
+            Ok(Op::SetReturn {
+                target,
+                expect: old,
+                to: new,
+            })
         }
-        "add-effect" => Ok(Op::AddEffect { target, expect: effects("uses")?, to: effect_name()? }),
+        "add-effect" => Ok(Op::AddEffect {
+            target,
+            expect: effects("uses")?,
+            to: effect_name()?,
+        }),
         "set-param-type" => {
-            let param = field(expect, "param").ok_or_else(|| at("expect.param must be a string"))?.to_string();
-            let old = field(expect, "type").and_then(Ty::from_name).ok_or_else(|| at("expect.type must be a type"))?;
+            let param = field(expect, "param")
+                .ok_or_else(|| at("expect.param must be a string"))?
+                .to_string();
+            let old = field(expect, "type")
+                .and_then(Ty::from_name)
+                .ok_or_else(|| at("expect.type must be a type"))?;
             let new = Ty::from_name(to).ok_or_else(|| at(&format!("unknown type '{to}'")))?;
-            Ok(Op::SetParamType { target, param, expect: old, to: new })
+            Ok(Op::SetParamType {
+                target,
+                param,
+                expect: old,
+                to: new,
+            })
         }
-        "remove-effect" => Ok(Op::RemoveEffect { target, expect: effects("uses")?, to: effect_name()? }),
+        "remove-effect" => Ok(Op::RemoveEffect {
+            target,
+            expect: effects("uses")?,
+            to: effect_name()?,
+        }),
         other => Err(at(&format!("unknown op '{other}'"))),
     }
 }
@@ -238,19 +343,31 @@ pub fn apply(src: &str, patch_text: &str) -> Result<Accepted, Fail> {
 
 /// As `apply`, with an optional id index. A target `id:<hex>` is resolved to its current name once,
 /// before the first op runs, so every op of one patch sees the names the patch was written against.
-pub fn apply_indexed(src: &str, patch_text: &str, index: Option<&IdIndex>) -> Result<Accepted, Fail> {
+pub fn apply_indexed(
+    src: &str,
+    patch_text: &str,
+    index: Option<&IdIndex>,
+) -> Result<Accepted, Fail> {
     let doc = json::parse(patch_text).map_err(|e| malformed(None, format!("invalid JSON: {e}")))?;
     let (base, mut ops) = parse_ops(&doc)?;
     resolve_ids(&mut ops, index)?;
 
     let module = parser::parse(src).map_err(|d| {
-        let mut r = reject("PAT006", "source", format!("the source does not parse: {}", d.message));
+        let mut r = reject(
+            "PAT006",
+            "source",
+            format!("the source does not parse: {}", d.message),
+        );
         r.diagnostics = vec![d];
         r
     })?;
     let current = graph_hash(&format::format_module(&module));
     if base != current {
-        let mut r = reject("PAT002", "stale", "the patch base is not the current graph hash; re-query and resubmit");
+        let mut r = reject(
+            "PAT002",
+            "stale",
+            "the patch base is not the current graph hash; re-query and resubmit",
+        );
         r.expected = Some(current);
         r.actual = Some(base);
         return Err(r);
@@ -267,12 +384,20 @@ pub fn apply_indexed(src: &str, patch_text: &str, index: Option<&IdIndex>) -> Re
     let candidate = format::format_module(&m);
     let diagnostics = check_source(&candidate);
     if !diagnostics.is_empty() {
-        let mut r = reject("PAT005", "validation", "the patched program does not pass the full checker");
+        let mut r = reject(
+            "PAT005",
+            "validation",
+            "the patched program does not pass the full checker",
+        );
         r.diagnostics = diagnostics;
         return Err(r);
     }
     if format_source(&candidate).ok().as_deref() != Some(candidate.as_str()) {
-        return Err(reject("PAT005", "validation", "the candidate does not re-format to itself"));
+        return Err(reject(
+            "PAT005",
+            "validation",
+            "the candidate does not re-format to itself",
+        ));
     }
 
     let mut touched: Vec<String> = Vec::new();
@@ -293,7 +418,13 @@ pub fn apply_indexed(src: &str, patch_text: &str, index: Option<&IdIndex>) -> Re
             _ => None,
         })
         .collect();
-    Ok(Accepted { text: candidate.clone(), base, new_base: graph_hash(&candidate), touched, renames })
+    Ok(Accepted {
+        text: candidate.clone(),
+        base,
+        new_base: graph_hash(&candidate),
+        touched,
+        renames,
+    })
 }
 
 fn resolve_ids(ops: &mut [Op], index: Option<&IdIndex>) -> Result<(), Fail> {
@@ -318,7 +449,13 @@ fn apply_op(m: &mut Module, op: &Op) -> Result<(), Fail> {
         .items
         .iter()
         .position(|f| f.name == op.target())
-        .ok_or_else(|| reject("PAT004", "target", format!("no function named '{}'", op.target())))?;
+        .ok_or_else(|| {
+            reject(
+                "PAT004",
+                "target",
+                format!("no function named '{}'", op.target()),
+            )
+        })?;
     match op {
         Op::Rename { expect, to, .. } => {
             let current = m.items[idx].name.clone();
@@ -346,9 +483,15 @@ fn apply_op(m: &mut Module, op: &Op) -> Result<(), Fail> {
         Op::Insert { with, .. } => {
             m.items.insert(idx + 1, with.clone());
         }
-        Op::SetParamType { param, expect, to, .. } => {
+        Op::SetParamType {
+            param, expect, to, ..
+        } => {
             let Some(p) = m.items[idx].params.iter_mut().find(|p| p.name == *param) else {
-                return Err(reject("PAT003", "precondition", format!("no parameter named '{param}'")));
+                return Err(reject(
+                    "PAT003",
+                    "precondition",
+                    format!("no parameter named '{param}'"),
+                ));
             };
             if p.ty != *expect {
                 return Err(mismatch(p.ty.name(), expect.name()));
@@ -359,7 +502,11 @@ fn apply_op(m: &mut Module, op: &Op) -> Result<(), Fail> {
             let uses = &mut m.items[idx].uses;
             check_list(uses, expect)?;
             if uses.contains(to) {
-                return Err(reject("PAT003", "precondition", format!("effect '{to}' is already declared")));
+                return Err(reject(
+                    "PAT003",
+                    "precondition",
+                    format!("effect '{to}' is already declared"),
+                ));
             }
             uses.push(to.clone());
         }
@@ -367,7 +514,11 @@ fn apply_op(m: &mut Module, op: &Op) -> Result<(), Fail> {
             let uses = &mut m.items[idx].uses;
             check_list(uses, expect)?;
             if !uses.contains(to) {
-                return Err(reject("PAT003", "precondition", format!("effect '{to}' is not declared")));
+                return Err(reject(
+                    "PAT003",
+                    "precondition",
+                    format!("effect '{to}' is not declared"),
+                ));
             }
             uses.retain(|u| u != to);
         }
@@ -384,7 +535,11 @@ fn precondition(current: &str, expected: &str) -> Result<(), Fail> {
 }
 
 fn mismatch(actual: &str, expected: &str) -> Fail {
-    let mut r = reject("PAT003", "precondition", "the precondition does not hold for the current program");
+    let mut r = reject(
+        "PAT003",
+        "precondition",
+        "the precondition does not hold for the current program",
+    );
     r.expected = Some(expected.to_string());
     r.actual = Some(actual.to_string());
     r
@@ -431,8 +586,13 @@ fn rename_calls_expr(e: &mut Expr, old: &str, new: &str) {
 
 /// Write text atomically: a temporary file in the same directory, then rename over the target.
 pub fn write_atomic(path: &Path, text: &str) -> std::io::Result<()> {
-    let dir = path.parent().filter(|p| !p.as_os_str().is_empty()).unwrap_or(Path::new("."));
-    let name = path.file_name().map_or_else(|| "out".to_string(), |n| n.to_string_lossy().into_owned());
+    let dir = path
+        .parent()
+        .filter(|p| !p.as_os_str().is_empty())
+        .unwrap_or(Path::new("."));
+    let name = path
+        .file_name()
+        .map_or_else(|| "out".to_string(), |n| n.to_string_lossy().into_owned());
     let tmp = dir.join(format!(".{name}.aqpatch-{}.tmp", std::process::id()));
     std::fs::write(&tmp, text)?;
     std::fs::rename(&tmp, path).inspect_err(|_| {

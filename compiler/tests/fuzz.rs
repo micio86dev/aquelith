@@ -28,8 +28,33 @@ impl Rng {
 }
 
 const ALPHABET: &[char] = &[
-    'a', 'z', '_', '0', '9', ' ', '\n', '(', ')', '{', '}', ',', ':', ';', '=', '+', '-', '*', '"', '\\', '\u{e9}', '\u{2028}',
-    '\u{1F600}', '\0', '\t', '<', '&',
+    'a',
+    'z',
+    '_',
+    '0',
+    '9',
+    ' ',
+    '\n',
+    '(',
+    ')',
+    '{',
+    '}',
+    ',',
+    ':',
+    ';',
+    '=',
+    '+',
+    '-',
+    '*',
+    '"',
+    '\\',
+    '\u{e9}',
+    '\u{2028}',
+    '\u{1F600}',
+    '\0',
+    '\t',
+    '<',
+    '&',
 ];
 
 fn mutate(rng: &mut Rng, src: &str) -> String {
@@ -96,9 +121,15 @@ fn mutated_patch_documents_never_panic_and_accepted_candidates_pass_the_checker(
     let src = "module demo\n\nfn add1(x: i32) -> i32 {\n    x + 1\n}\n\nfn main() -> i32 uses io {\n    add1(41)\n}\n";
     let base = aqelith::patch::graph_hash(&format_source(src).unwrap());
     let seeds = [
-        format!(r#"{{"api":"aqelith.patch.v1","base":"{base}","ops":[{{"op":"rename","target":"add1","expect":{{"name":"add1"}},"to":"inc"}}]}}"#),
-        format!(r#"{{"api":"aqelith.patch.v1","base":"{base}","ops":[{{"op":"add-effect","target":"main","expect":{{"uses":["io"]}},"to":"net"}}]}}"#),
-        format!(r#"{{"api":"aqelith.patch.v1","base":"{base}","ops":[{{"op":"set-return","target":"add1","expect":{{"ret":"i32"}},"to":"bool"}}]}}"#),
+        format!(
+            r#"{{"api":"aqelith.patch.v1","base":"{base}","ops":[{{"op":"rename","target":"add1","expect":{{"name":"add1"}},"to":"inc"}}]}}"#
+        ),
+        format!(
+            r#"{{"api":"aqelith.patch.v1","base":"{base}","ops":[{{"op":"add-effect","target":"main","expect":{{"uses":["io"]}},"to":"net"}}]}}"#
+        ),
+        format!(
+            r#"{{"api":"aqelith.patch.v1","base":"{base}","ops":[{{"op":"set-return","target":"add1","expect":{{"ret":"i32"}},"to":"bool"}}]}}"#
+        ),
     ];
     let mut rng = Rng(0x1234_5678_9abc_def1);
     let mut accepted = 0usize;
@@ -107,12 +138,18 @@ fn mutated_patch_documents_never_panic_and_accepted_candidates_pass_the_checker(
             let doc = mutate(&mut rng, &seed);
             if let Ok(ok) = patch::apply(src, &doc) {
                 accepted += 1;
-                assert!(check_source(&ok.text).is_empty(), "accepted candidate fails the checker: {doc}");
+                assert!(
+                    check_source(&ok.text).is_empty(),
+                    "accepted candidate fails the checker: {doc}"
+                );
             }
         }
     }
     // The mutations are small, so some documents should still apply; this keeps the test honest.
-    assert!(accepted > 0, "no mutated patch was accepted; the generator may be broken");
+    assert!(
+        accepted > 0,
+        "no mutated patch was accepted; the generator may be broken"
+    );
 }
 
 #[test]

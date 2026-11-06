@@ -9,7 +9,11 @@ use std::time::Instant;
 fn generate(n: usize) -> String {
     let mut out = String::from("module bench\n");
     for i in 0..n {
-        let body = if i == 0 { "x + 1".to_string() } else { format!("f{}(x) + {}", i - 1, i % 7) };
+        let body = if i == 0 {
+            "x + 1".to_string()
+        } else {
+            format!("f{}(x) + {}", i - 1, i % 7)
+        };
         out.push_str(&format!("\nfn f{i}(x: i32) -> i32 {{\n    {body}\n}}\n"));
     }
     out
@@ -28,7 +32,10 @@ fn time_us(samples: usize, mut f: impl FnMut()) -> (u128, u128) {
 }
 
 fn main() {
-    let n: usize = std::env::args().nth(1).and_then(|a| a.parse().ok()).unwrap_or(100);
+    let n: usize = std::env::args()
+        .nth(1)
+        .and_then(|a| a.parse().ok())
+        .unwrap_or(100);
     let src = generate(n);
     let samples = 15;
     let (pmin, pmed) = time_us(samples, || {

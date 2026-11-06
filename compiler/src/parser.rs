@@ -8,11 +8,18 @@ use crate::lexer::{lex, Tok, Token};
 /// Maximum nesting of blocks, parentheses, calls and expression trees.
 pub const MAX_DEPTH: usize = 128;
 
-const RESERVED: &[&str] = &["module", "fn", "page", "let", "mut", "uses", "true", "false"];
+const RESERVED: &[&str] = &[
+    "module", "fn", "page", "let", "mut", "uses", "true", "false",
+];
 
 pub fn parse(src: &str) -> Result<Module, Diagnostic> {
     let toks = lex(src)?;
-    let mut p = Parser { src, toks, pos: 0, nest: 0 };
+    let mut p = Parser {
+        src,
+        toks,
+        pos: 0,
+        nest: 0,
+    };
     p.module()
 }
 
@@ -24,7 +31,12 @@ struct Parser<'a> {
 }
 
 fn atom(kind: ExprKind, start: usize, end: usize) -> Expr {
-    Expr { kind, start, end, depth: 1 }
+    Expr {
+        kind,
+        start,
+        end,
+        depth: 1,
+    }
 }
 
 impl<'a> Parser<'a> {
@@ -115,7 +127,11 @@ impl<'a> Parser<'a> {
             let value = value.clone();
             let t = self.toks[self.pos].clone();
             self.pos += 1;
-            return Ok(Text { value, start: t.start, end: t.end });
+            return Ok(Text {
+                value,
+                start: t.start,
+                end: t.end,
+            });
         }
         Err(self.err("PAR001", "expected a string literal"))
     }
@@ -139,21 +155,41 @@ impl<'a> Parser<'a> {
             };
             let item = match kw.as_str() {
                 "title" => PageItem::Title(self.text()?),
-                "h1" => PageItem::Heading { level: 1, text: self.text()? },
-                "h2" => PageItem::Heading { level: 2, text: self.text()? },
+                "h1" => PageItem::Heading {
+                    level: 1,
+                    text: self.text()?,
+                },
+                "h2" => PageItem::Heading {
+                    level: 2,
+                    text: self.text()?,
+                },
                 "p" => PageItem::Para(self.text()?),
                 "link" => {
                     let label = self.text()?;
                     let href = self.text()?;
                     PageItem::Link { label, href }
                 }
-                _ => return Err(Diagnostic::new(self.src, "PAR001", format!("unknown page statement '{kw}'"), ks, ke)),
+                _ => {
+                    return Err(Diagnostic::new(
+                        self.src,
+                        "PAR001",
+                        format!("unknown page statement '{kw}'"),
+                        ks,
+                        ke,
+                    ))
+                }
             };
             self.expect_sym(";")?;
             items.push(item);
         }
         self.expect_sym("}")?;
-        Ok(Page { name, name_start, name_end, route, items })
+        Ok(Page {
+            name,
+            name_start,
+            name_end,
+            route,
+            items,
+        })
     }
 
     fn fn_def(&mut self) -> Result<FnDef, Diagnostic> {
@@ -187,7 +223,13 @@ impl<'a> Parser<'a> {
             loop {
                 let (eff, s, e) = self.ident()?;
                 if !EFFECTS.contains(&eff.as_str()) {
-                    return Err(Diagnostic::new(self.src, "EFF002", format!("unknown effect '{eff}'"), s, e));
+                    return Err(Diagnostic::new(
+                        self.src,
+                        "EFF002",
+                        format!("unknown effect '{eff}'"),
+                        s,
+                        e,
+                    ));
                 }
                 uses.push(eff);
                 if self.is_sym(",") {
@@ -198,12 +240,22 @@ impl<'a> Parser<'a> {
             }
         }
         let body = self.block()?;
-        Ok(FnDef { name, name_start, name_end, params, ret, uses, body })
+        Ok(FnDef {
+            name,
+            name_start,
+            name_end,
+            params,
+            ret,
+            uses,
+            body,
+        })
     }
 
     fn ty(&mut self) -> Result<Ty, Diagnostic> {
         let (name, s, e) = self.ident()?;
-        Ty::from_name(&name).ok_or_else(|| Diagnostic::new(self.src, "TYP004", format!("unknown type '{name}'"), s, e))
+        Ty::from_name(&name).ok_or_else(|| {
+            Diagnostic::new(self.src, "TYP004", format!("unknown type '{name}'"), s, e)
+        })
     }
 
     fn block(&mut self) -> Result<Block, Diagnostic> {
@@ -233,7 +285,12 @@ impl<'a> Parser<'a> {
                 self.expect_sym("=")?;
                 let value = self.expr()?;
                 self.expect_sym(";")?;
-                stmts.push(Stmt::Let { name, mutable, ty, value });
+                stmts.push(Stmt::Let {
+                    name,
+                    mutable,
+                    ty,
+                    value,
+                });
             } else {
                 let e = self.expr()?;
                 if self.is_sym(";") {
@@ -273,7 +330,10 @@ impl<'a> Parser<'a> {
                 break;
             }
             if op == BinOp::Eq && matches!(lhs.kind, ExprKind::Bin { op: BinOp::Eq, .. }) {
-                return Err(self.err("PAR005", "comparison operators cannot be chained; add parentheses"));
+                return Err(self.err(
+                    "PAR005",
+                    "comparison operators cannot be chained; add parentheses",
+                ));
             }
             self.pos += 1;
             let rhs = self.binary(op.prec() + 1)?;
@@ -282,7 +342,16 @@ impl<'a> Parser<'a> {
                 return Err(self.err("PAR002", "expression nesting too deep"));
             }
             let (start, end) = (lhs.start, rhs.end);
-            lhs = Expr { kind: ExprKind::Bin { op, lhs: Box::new(lhs), rhs: Box::new(rhs) }, start, end, depth };
+            lhs = Expr {
+                kind: ExprKind::Bin {
+                    op,
+                    lhs: Box::new(lhs),
+                    rhs: Box::new(rhs),
+                },
+                start,
+                end,
+                depth,
+            };
         }
         Ok(lhs)
     }
@@ -326,7 +395,12 @@ impl<'a> Parser<'a> {
                 if depth > MAX_DEPTH {
                     return Err(self.err("PAR002", "expression nesting too deep"));
                 }
-                Ok(Expr { kind: ExprKind::Call { callee: name, args }, start: s, end, depth })
+                Ok(Expr {
+                    kind: ExprKind::Call { callee: name, args },
+                    start: s,
+                    end,
+                    depth,
+                })
             }
             Tok::Sym("(") => {
                 self.enter()?;
@@ -339,7 +413,12 @@ impl<'a> Parser<'a> {
                     return Err(self.err("PAR002", "expression nesting too deep"));
                 }
                 let end = self.toks[self.pos - 1].end;
-                Ok(Expr { kind: ExprKind::Group(Box::new(inner)), start: tok.start, end, depth })
+                Ok(Expr {
+                    kind: ExprKind::Group(Box::new(inner)),
+                    start: tok.start,
+                    end,
+                    depth,
+                })
             }
             _ => Err(self.err("PAR001", "expected expression")),
         }

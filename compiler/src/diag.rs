@@ -43,9 +43,22 @@ pub struct Diagnostic {
 
 impl Diagnostic {
     /// Build a diagnostic; `start` and `end` are byte offsets into `src` (source is ASCII in v0).
-    pub fn new(src: &str, code: &'static str, message: impl Into<String>, start: usize, end: usize) -> Self {
+    pub fn new(
+        src: &str,
+        code: &'static str,
+        message: impl Into<String>,
+        start: usize,
+        end: usize,
+    ) -> Self {
         let (line, column) = locate(src, start);
-        Diagnostic { code, message: message.into(), start, end, line, column }
+        Diagnostic {
+            code,
+            message: message.into(),
+            start,
+            end,
+            line,
+            column,
+        }
     }
 
     pub fn to_json(&self) -> String {
@@ -71,7 +84,10 @@ pub fn locate(src: &str, offset: usize) -> (usize, usize) {
 
 /// Explanation for a stable code, if the code exists.
 pub fn explain(code: &str) -> Option<&'static str> {
-    CODES.iter().find(|(c, _)| *c == code).map(|(_, text)| *text)
+    CODES
+        .iter()
+        .find(|(c, _)| *c == code)
+        .map(|(_, text)| *text)
 }
 
 /// JSON string literal, quotes included.

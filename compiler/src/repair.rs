@@ -16,7 +16,8 @@ const MAX_ROUNDS: usize = 16;
 /// Returns a patch document that makes the module pass the effect rules, or None when no
 /// change is needed. Syntax errors are returned as the parser's diagnostic.
 pub fn propose(src: &str) -> Result<Option<String>, String> {
-    let module = parser::parse(src).map_err(|d: Diagnostic| format!("{}:{}: {}: {}", d.line, d.column, d.code, d.message))?;
+    let module = parser::parse(src)
+        .map_err(|d: Diagnostic| format!("{}:{}: {}: {}", d.line, d.column, d.code, d.message))?;
     let base = patch::graph_hash(&format::format_module(&module));
     let mut m = module.clone();
     let mut ops: Vec<String> = Vec::new();
@@ -33,7 +34,11 @@ pub fn propose(src: &str) -> Result<Option<String>, String> {
             ops.push(format!(
                 "{{\"op\":\"add-effect\",\"target\":{},\"expect\":{{\"uses\":[{}]}},\"to\":{}}}",
                 jstr(&m.items[caller].name),
-                current.iter().map(|u| jstr(u)).collect::<Vec<_>>().join(","),
+                current
+                    .iter()
+                    .map(|u| jstr(u))
+                    .collect::<Vec<_>>()
+                    .join(","),
                 jstr(&effect)
             ));
             m.items[caller].uses.push(effect);
@@ -45,10 +50,18 @@ pub fn propose(src: &str) -> Result<Option<String>, String> {
     if !missing_effects(&m).is_empty() {
         return Err(format!("no fixed point within {MAX_ROUNDS} rounds"));
     }
-    let doc = format!("{{\"api\":{},\"base\":{},\"ops\":[{}]}}", jstr(patch::API), jstr(&base), ops.join(","));
+    let doc = format!(
+        "{{\"api\":{},\"base\":{},\"ops\":[{}]}}",
+        jstr(patch::API),
+        jstr(&base),
+        ops.join(",")
+    );
     match patch::apply(src, &doc) {
         Ok(_) => Ok(Some(doc)),
-        Err(r) => Err(format!("proposal rejected by the patch verifier: {}", r.message)),
+        Err(r) => Err(format!(
+            "proposal rejected by the patch verifier: {}",
+            r.message
+        )),
     }
 }
 
@@ -59,7 +72,9 @@ fn missing_effects(m: &Module) -> Vec<(usize, String)> {
         let mut callees: Vec<String> = Vec::new();
         block_calls(&caller.body, &mut callees);
         for callee in callees {
-            let Some(def) = m.items.iter().find(|f| f.name == callee) else { continue };
+            let Some(def) = m.items.iter().find(|f| f.name == callee) else {
+                continue;
+            };
             for eff in &def.uses {
                 if !caller.uses.contains(eff) && !out.iter().any(|(c, e)| *c == ci && e == eff) {
                     out.push((ci, eff.clone()));

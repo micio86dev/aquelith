@@ -17,7 +17,12 @@ fn capability_denies_hosts_outside_its_scope() {
     let net = root.net(&["api.example"]);
 
     let err = net.connect("evil.example").unwrap_err();
-    assert_eq!(err, Denied::NotInScope { host: "evil.example".into() });
+    assert_eq!(
+        err,
+        Denied::NotInScope {
+            host: "evil.example".into()
+        }
+    );
 }
 
 #[test]
@@ -26,7 +31,12 @@ fn capability_cannot_be_widened_by_attenuation() {
     let net = root.net(&["api.example"]);
 
     let err = net.narrow(&["api.example", "other.example"]).unwrap_err();
-    assert_eq!(err, Denied::NotInScope { host: "other.example".into() });
+    assert_eq!(
+        err,
+        Denied::NotInScope {
+            host: "other.example".into()
+        }
+    );
 }
 
 #[test]
@@ -44,6 +54,9 @@ fn function_reaching_network_takes_the_capability_as_a_parameter() {
     let root = Root::root();
     let net = root.net(&["api.example"]);
 
-    assert_eq!(fetch(&net, "api.example"), Ok("connected:api.example".to_string()));
+    assert_eq!(
+        fetch(&net, "api.example"),
+        Ok("connected:api.example".to_string())
+    );
     assert!(fetch(&net, "evil.example").is_err());
 }

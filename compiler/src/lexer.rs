@@ -46,50 +46,104 @@ pub fn lex(src: &str) -> Result<Vec<Token>, Diagnostic> {
             continue;
         }
         if c >= 0x80 {
-            return Err(Diagnostic::new(src, "LEX001", "non-ASCII character", i, i + 1));
+            return Err(Diagnostic::new(
+                src,
+                "LEX001",
+                "non-ASCII character",
+                i,
+                i + 1,
+            ));
         }
         let start = i;
         if c.is_ascii_alphabetic() || c == b'_' {
             while i < bytes.len() && (bytes[i].is_ascii_alphanumeric() || bytes[i] == b'_') {
                 i += 1;
             }
-            out.push(Token { tok: Tok::Ident(src[start..i].to_string()), start, end: i });
+            out.push(Token {
+                tok: Tok::Ident(src[start..i].to_string()),
+                start,
+                end: i,
+            });
         } else if c.is_ascii_digit() {
             while i < bytes.len() && bytes[i].is_ascii_digit() {
                 i += 1;
             }
-            out.push(Token { tok: Tok::Int(src[start..i].to_string()), start, end: i });
+            out.push(Token {
+                tok: Tok::Int(src[start..i].to_string()),
+                start,
+                end: i,
+            });
         } else if c == b'"' {
             i += 1;
             let body = i;
             loop {
                 if i >= bytes.len() || bytes[i] == b'\n' || bytes[i] == b'\r' {
-                    return Err(Diagnostic::new(src, "LEX004", "unterminated string literal", start, i));
+                    return Err(Diagnostic::new(
+                        src,
+                        "LEX004",
+                        "unterminated string literal",
+                        start,
+                        i,
+                    ));
                 }
                 if bytes[i] == b'"' {
                     break;
                 }
                 if bytes[i] == b'\\' || bytes[i] < 0x20 || bytes[i] >= 0x7f {
-                    return Err(Diagnostic::new(src, "LEX005", "character not allowed in a string literal", i, i + 1));
+                    return Err(Diagnostic::new(
+                        src,
+                        "LEX005",
+                        "character not allowed in a string literal",
+                        i,
+                        i + 1,
+                    ));
                 }
                 i += 1;
             }
             let value = src[body..i].to_string();
             i += 1;
-            out.push(Token { tok: Tok::Str(value), start, end: i });
+            out.push(Token {
+                tok: Tok::Str(value),
+                start,
+                end: i,
+            });
         } else if src[i..].starts_with("->") {
             i += 2;
-            out.push(Token { tok: Tok::Sym("->"), start, end: i });
+            out.push(Token {
+                tok: Tok::Sym("->"),
+                start,
+                end: i,
+            });
         } else if src[i..].starts_with("==") {
             i += 2;
-            out.push(Token { tok: Tok::Sym("=="), start, end: i });
+            out.push(Token {
+                tok: Tok::Sym("=="),
+                start,
+                end: i,
+            });
         } else if c == b'/' {
-            return Err(Diagnostic::new(src, "LEX003", "comments are not supported in v0", i, i + 1));
+            return Err(Diagnostic::new(
+                src,
+                "LEX003",
+                "comments are not supported in v0",
+                i,
+                i + 1,
+            ));
         } else if let Some(sym) = one_char(c) {
             i += 1;
-            out.push(Token { tok: Tok::Sym(sym), start, end: i });
+            out.push(Token {
+                tok: Tok::Sym(sym),
+                start,
+                end: i,
+            });
         } else {
-            return Err(Diagnostic::new(src, "LEX002", format!("unexpected character '{}'", c as char), i, i + 1));
+            return Err(Diagnostic::new(
+                src,
+                "LEX002",
+                format!("unexpected character '{}'", c as char),
+                i,
+                i + 1,
+            ));
         }
     }
     Ok(out)

@@ -36,12 +36,18 @@ impl Json {
 }
 
 pub fn parse(src: &str) -> Result<Json, String> {
-    let mut p = Reader { chars: src.chars().collect(), pos: 0 };
+    let mut p = Reader {
+        chars: src.chars().collect(),
+        pos: 0,
+    };
     p.skip_ws();
     let value = p.value(0)?;
     p.skip_ws();
     if p.pos != p.chars.len() {
-        return Err(format!("unexpected trailing content at character {}", p.pos));
+        return Err(format!(
+            "unexpected trailing content at character {}",
+            p.pos
+        ));
     }
     Ok(value)
 }
@@ -92,7 +98,10 @@ impl Reader {
             Some('f') => self.literal("false").map(|_| Json::Bool(false)),
             Some('n') => self.literal("null").map(|_| Json::Null),
             Some(c) if c == '-' || c.is_ascii_digit() => self.integer(),
-            Some(c) => Err(format!("unexpected character '{c}' at character {}", self.pos)),
+            Some(c) => Err(format!(
+                "unexpected character '{c}' at character {}",
+                self.pos
+            )),
             None => Err("unexpected end of input".into()),
         }
     }
@@ -163,10 +172,14 @@ impl Reader {
             return Err(format!("invalid number at character {start}"));
         }
         if matches!(self.peek(), Some('.' | 'e' | 'E')) {
-            return Err(format!("floating-point numbers are not allowed at character {start}"));
+            return Err(format!(
+                "floating-point numbers are not allowed at character {start}"
+            ));
         }
         let text: String = self.chars[start..self.pos].iter().collect();
-        text.parse::<i64>().map(Json::Int).map_err(|_| format!("integer out of range at character {start}"))
+        text.parse::<i64>()
+            .map(Json::Int)
+            .map_err(|_| format!("integer out of range at character {start}"))
     }
 
     fn string(&mut self) -> Result<String, String> {
@@ -195,11 +208,15 @@ impl Reader {
                         'u' => {
                             let mut code = 0u32;
                             for _ in 0..4 {
-                                let d = self.peek().and_then(|c| c.to_digit(16)).ok_or("invalid \\u escape")?;
+                                let d = self
+                                    .peek()
+                                    .and_then(|c| c.to_digit(16))
+                                    .ok_or("invalid \\u escape")?;
                                 code = code * 16 + d;
                                 self.pos += 1;
                             }
-                            let c = char::from_u32(code).ok_or("\\u escape is a surrogate, not allowed")?;
+                            let c = char::from_u32(code)
+                                .ok_or("\\u escape is a surrogate, not allowed")?;
                             out.push(c);
                         }
                         other => return Err(format!("invalid escape '\\{other}'")),
@@ -221,9 +238,18 @@ mod tests {
 
     #[test]
     fn reads_a_patch_shaped_document() {
-        let v = parse(r#"{"api":"aqelith.patch.v1","ops":[{"op":"rename","n":-3,"ok":true,"x":null}]}"#).unwrap();
-        assert_eq!(v.get("api").and_then(Json::as_str), Some("aqelith.patch.v1"));
-        assert_eq!(v.get("ops").and_then(Json::as_array).map(|a| a.len()), Some(1));
+        let v = parse(
+            r#"{"api":"aqelith.patch.v1","ops":[{"op":"rename","n":-3,"ok":true,"x":null}]}"#,
+        )
+        .unwrap();
+        assert_eq!(
+            v.get("api").and_then(Json::as_str),
+            Some("aqelith.patch.v1")
+        );
+        assert_eq!(
+            v.get("ops").and_then(Json::as_array).map(|a| a.len()),
+            Some(1)
+        );
     }
 
     #[test]

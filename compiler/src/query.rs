@@ -49,7 +49,13 @@ pub fn query_fn(m: &Module, name: &str) -> Option<String> {
     let params: Vec<String> = f
         .params
         .iter()
-        .map(|p| format!("{{\"name\":{},\"type\":{}}}", jstr(&p.name), jstr(p.ty.name())))
+        .map(|p| {
+            format!(
+                "{{\"name\":{},\"type\":{}}}",
+                jstr(&p.name),
+                jstr(p.ty.name())
+            )
+        })
         .collect();
     let list = |items: &[String]| items.iter().map(|s| jstr(s)).collect::<Vec<_>>().join(",");
     Some(format!(

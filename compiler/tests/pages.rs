@@ -18,18 +18,30 @@ fn string_literal_is_one_token() {
 
 #[test]
 fn unterminated_string_is_lex004() {
-    assert_eq!(codes("module m\npage a \"/\" {\n    title \"open;\n}\n"), vec!["LEX004"]);
+    assert_eq!(
+        codes("module m\npage a \"/\" {\n    title \"open;\n}\n"),
+        vec!["LEX004"]
+    );
 }
 
 #[test]
 fn backslash_and_control_characters_are_lex005() {
-    assert_eq!(codes("module m\npage a \"/\" {\n    title \"a\\b\";\n}\n"), vec!["LEX005"]);
-    assert_eq!(codes("module m\npage a \"/\" {\n    title \"a\tb\";\n}\n"), vec!["LEX005"]);
+    assert_eq!(
+        codes("module m\npage a \"/\" {\n    title \"a\\b\";\n}\n"),
+        vec!["LEX005"]
+    );
+    assert_eq!(
+        codes("module m\npage a \"/\" {\n    title \"a\tb\";\n}\n"),
+        vec!["LEX005"]
+    );
 }
 
 #[test]
 fn non_ascii_inside_a_string_is_lex005() {
-    assert_eq!(codes("module m\npage a \"/\" {\n    title \"caf\u{e9}\";\n}\n"), vec!["LEX005"]);
+    assert_eq!(
+        codes("module m\npage a \"/\" {\n    title \"caf\u{e9}\";\n}\n"),
+        vec!["LEX005"]
+    );
 }
 
 #[test]
@@ -39,29 +51,46 @@ fn a_valid_site_is_accepted() {
 
 #[test]
 fn a_page_without_title_is_page001() {
-    assert_eq!(codes("module m\npage a \"/\" {\n    h1 \"x\";\n}\n"), vec!["PAGE001"]);
+    assert_eq!(
+        codes("module m\npage a \"/\" {\n    h1 \"x\";\n}\n"),
+        vec!["PAGE001"]
+    );
 }
 
 #[test]
 fn a_title_given_twice_is_page001() {
-    assert_eq!(codes("module m\npage a \"/\" {\n    title \"x\";\n    title \"y\";\n}\n"), vec!["PAGE001"]);
+    assert_eq!(
+        codes("module m\npage a \"/\" {\n    title \"x\";\n    title \"y\";\n}\n"),
+        vec!["PAGE001"]
+    );
 }
 
 #[test]
 fn empty_text_is_page002() {
-    assert_eq!(codes("module m\npage a \"/\" {\n    title \"  \";\n}\n"), vec!["PAGE002"]);
+    assert_eq!(
+        codes("module m\npage a \"/\" {\n    title \"  \";\n}\n"),
+        vec!["PAGE002"]
+    );
 }
 
 #[test]
 fn a_bad_route_is_page003() {
-    assert_eq!(codes("module m\npage a \"docs\" {\n    title \"x\";\n}\n"), vec!["PAGE003"]);
-    assert_eq!(codes("module m\npage a \"/docs/\" {\n    title \"x\";\n}\n"), vec!["PAGE003"]);
+    assert_eq!(
+        codes("module m\npage a \"docs\" {\n    title \"x\";\n}\n"),
+        vec!["PAGE003"]
+    );
+    assert_eq!(
+        codes("module m\npage a \"/docs/\" {\n    title \"x\";\n}\n"),
+        vec!["PAGE003"]
+    );
 }
 
 #[test]
 fn a_duplicate_route_is_page004() {
     assert_eq!(
-        codes("module m\npage a \"/\" {\n    title \"x\";\n}\npage b \"/\" {\n    title \"y\";\n}\n"),
+        codes(
+            "module m\npage a \"/\" {\n    title \"x\";\n}\npage b \"/\" {\n    title \"y\";\n}\n"
+        ),
         vec!["PAGE004"]
     );
 }
@@ -103,7 +132,15 @@ fn a_function_patch_keeps_the_pages_of_the_module() {
         "{{\"api\":\"aqelith.patch.v1\",\"base\":\"{base}\",\"ops\":[{{\"op\":\"rename\",\"target\":\"one\",\"expect\":{{\"name\":\"one\"}},\"to\":\"two\"}}]}}"
     );
     let accepted = aqelith::patch::apply(src, &doc).unwrap_or_else(|r| panic!("{}", r.message));
-    assert!(accepted.text.contains("fn two() -> u32 {"), "{}", accepted.text);
-    assert!(accepted.text.contains("page a \"/\" {"), "{}", accepted.text);
+    assert!(
+        accepted.text.contains("fn two() -> u32 {"),
+        "{}",
+        accepted.text
+    );
+    assert!(
+        accepted.text.contains("page a \"/\" {"),
+        "{}",
+        accepted.text
+    );
     assert!(accepted.text.contains("h1 \"Hi\";"), "{}", accepted.text);
 }
