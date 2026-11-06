@@ -110,6 +110,6 @@ fn expr_calls(e: &Expr, out: &mut Vec<String>) {
             expr_calls(rhs, out);
         }
         ExprKind::Group(inner) => expr_calls(inner, out),
-        ExprKind::Int(_) | ExprKind::Bool(_) | ExprKind::Ident(_) => {}
+        ExprKind::Int(_) | ExprKind::Bool(_) | ExprKind::Str(_) | ExprKind::Ident(_) => {}
     }
 }

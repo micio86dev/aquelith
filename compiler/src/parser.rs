@@ -8,9 +8,17 @@ use crate::lexer::{lex, Tok, Token};
 /// Maximum nesting of blocks, parentheses, calls and expression trees.
 pub const MAX_DEPTH: usize = 128;
 
-const RESERVED: &[&str] = &[
+/// Words that cannot be used as names (also checked by patch targets).
+pub const RESERVED: &[&str] = &[
     "module", "fn", "page", "let", "mut", "uses", "true", "false",
 ];
+
+/// True when `s` is a plain identifier: ASCII letter or `_`, then letters, digits or `_`, and not reserved.
+pub fn is_identifier(s: &str) -> bool {
+    let mut chars = s.chars();
+    let first_ok = matches!(chars.next(), Some(c) if c.is_ascii_alphabetic() || c == '_');
+    first_ok && chars.all(|c| c.is_ascii_alphanumeric() || c == '_') && !RESERVED.contains(&s)
+}
 
 pub fn parse(src: &str) -> Result<Module, Diagnostic> {
     let toks = lex(src)?;
@@ -369,6 +377,10 @@ impl<'a> Parser<'a> {
             Tok::Ident(word) if word == "true" || word == "false" => {
                 self.pos += 1;
                 Ok(atom(ExprKind::Bool(word == "true"), tok.start, tok.end))
+            }
+            Tok::Str(value) => {
+                self.pos += 1;
+                Ok(atom(ExprKind::Str(value.clone()), tok.start, tok.end))
             }
             Tok::Ident(_) => {
                 let (name, s, e) = self.ident()?;

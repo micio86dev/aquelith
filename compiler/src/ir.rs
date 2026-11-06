@@ -20,6 +20,7 @@ pub struct Reg(pub u32);
 pub enum Value {
     Int(i64),
     Bool(bool),
+    Str(String),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -185,6 +186,15 @@ impl Lowering<'_> {
                 });
                 Ok(dst)
             }
+            ExprKind::Str(s) => {
+                let dst = self.fresh(Ty::Str);
+                self.body.push(Inst::Const {
+                    dst,
+                    ty: Ty::Str,
+                    value: Value::Str(s.clone()),
+                });
+                Ok(dst)
+            }
             ExprKind::Ident(name) => self
                 .locals
                 .iter()
@@ -271,6 +281,7 @@ impl Program {
                         let v = match value {
                             Value::Int(i) => i.to_string(),
                             Value::Bool(b) => b.to_string(),
+                            Value::Str(s) => format!("\"{s}\""),
                         };
                         format!("{}: {} = const {v}", reg(*dst), ty.name())
                     }

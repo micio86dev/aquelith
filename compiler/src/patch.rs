@@ -122,6 +122,12 @@ fn parse_fn_source(i: usize, text: &str) -> Result<FnDef, Fail> {
             format!("'with' is not a valid function: {}", d.message),
         )
     })?;
+    if !module.pages.is_empty() {
+        return Err(malformed(
+            Some(i),
+            "'with' must hold a function, not a page",
+        ));
+    }
     let mut items = module.items;
     if items.len() != 1 {
         return Err(malformed(Some(i), "'with' must hold exactly one function"));
@@ -289,6 +295,9 @@ fn parse_op(i: usize, j: &Json) -> Result<Op, Fail> {
     match kind {
         "rename" => {
             let old = field(expect, "name").ok_or_else(|| at("expect.name must be a string"))?;
+            if !crate::parser::is_identifier(to) {
+                return Err(at("rename target must be a plain identifier"));
+            }
             Ok(Op::Rename {
                 target,
                 expect: old.to_string(),
@@ -580,7 +589,7 @@ fn rename_calls_expr(e: &mut Expr, old: &str, new: &str) {
             rename_calls_expr(rhs, old, new);
         }
         ExprKind::Group(inner) => rename_calls_expr(inner, old, new),
-        ExprKind::Int(_) | ExprKind::Bool(_) | ExprKind::Ident(_) => {}
+        ExprKind::Int(_) | ExprKind::Bool(_) | ExprKind::Str(_) | ExprKind::Ident(_) => {}
     }
 }
 
@@ -593,9 +602,41 @@ pub fn write_atomic(path: &Path, text: &str) -> std::io::Result<()> {
     let name = path
         .file_name()
         .map_or_else(|| "out".to_string(), |n| n.to_string_lossy().into_owned());
-    let tmp = dir.join(format!(".{name}.aqpatch-{}.tmp", std::process::id()));
-    std::fs::write(&tmp, text)?;
-    std::fs::rename(&tmp, path).inspect_err(|_| {
-        let _ = std::fs::remove_file(&tmp);
-    })
+    // The temporary name carries the time, so it is not guessable; a name already taken is skipped.
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| d.as_nanos());
+    for attempt in 0..16u32 {
+        let tmp = dir.join(format!(
+            ".{name}.aqpatch-{}-{nanos}-{attempt}.tmp",
+            std::process::id()
+        ));
+        match write_via_temp(path, text, &tmp) {
+            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => continue,
+            other => return other,
+        }
+    }
+    Err(std::io::Error::new(
+        std::io::ErrorKind::AlreadyExists,
+        "no free temporary name",
+    ))
+}
+
+/// Writes `text` to `tmp` (which must not exist; it is never followed or truncated), then renames it
+/// over `path`. A temporary file that this call created is removed if the write or the rename fails.
+pub fn write_via_temp(path: &Path, text: &str, tmp: &Path) -> std::io::Result<()> {
+    use std::io::Write;
+    let mut file = std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(tmp)?;
+    let written = file
+        .write_all(text.as_bytes())
+        .and_then(|()| file.sync_all());
+    drop(file);
+    let result = written.and_then(|()| std::fs::rename(tmp, path));
+    if result.is_err() {
+        let _ = std::fs::remove_file(tmp);
+    }
+    result
 }

@@ -19,6 +19,8 @@ pub enum Ty {
     I32,
     U32,
     Bool,
+    /// Text of printable ASCII (S2). Values exist at run time only; no operations beyond equality.
+    Str,
     Unit,
 }
 
@@ -28,6 +30,7 @@ impl Ty {
             "i32" => Some(Ty::I32),
             "u32" => Some(Ty::U32),
             "bool" => Some(Ty::Bool),
+            "str" => Some(Ty::Str),
             "unit" => Some(Ty::Unit),
             _ => None,
         }
@@ -38,6 +41,7 @@ impl Ty {
             Ty::I32 => "i32",
             Ty::U32 => "u32",
             Ty::Bool => "bool",
+            Ty::Str => "str",
             Ty::Unit => "unit",
         }
     }
@@ -84,6 +88,8 @@ pub struct Expr {
 pub enum ExprKind {
     Int(String),
     Bool(bool),
+    /// String literal, value without quotes. Printable ASCII, no quote or backslash (ADR-0015).
+    Str(String),
     Ident(String),
     Call {
         callee: String,

@@ -91,6 +91,17 @@ fn check_fn(
     sigs: &BTreeMap<String, Sig>,
     f: &FnDef,
 ) -> Result<BTreeMap<(usize, usize), Ty>, Diagnostic> {
+    for (i, p) in f.params.iter().enumerate() {
+        if f.params[..i].iter().any(|q| q.name == p.name) {
+            return Err(Diagnostic::new(
+                src,
+                "DUP001",
+                format!("parameter '{}' is declared twice", p.name),
+                f.name_start,
+                f.name_end,
+            ));
+        }
+    }
     let mut cx = Ctx {
         src,
         sigs,
@@ -203,6 +214,7 @@ impl Ctx<'_> {
                 Ok(ty)
             }
             ExprKind::Bool(_) => self.want(e, expected, Ty::Bool),
+            ExprKind::Str(_) => self.want(e, expected, Ty::Str),
             ExprKind::Ident(name) => {
                 let ty = self
                     .locals
@@ -250,7 +262,7 @@ impl Ctx<'_> {
                 }
                 BinOp::Add | BinOp::Sub | BinOp::Mul => {
                     let t = self.operands(lhs, rhs, expected)?;
-                    if matches!(t, Ty::Bool | Ty::Unit) {
+                    if !matches!(t, Ty::I32 | Ty::U32) {
                         return Err(self.diag(
                             e,
                             "TYP001",

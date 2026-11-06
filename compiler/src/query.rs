@@ -18,7 +18,7 @@ fn collect_calls(e: &Expr, out: &mut BTreeSet<String>) {
             collect_calls(rhs, out);
         }
         ExprKind::Group(inner) => collect_calls(inner, out),
-        ExprKind::Int(_) | ExprKind::Bool(_) | ExprKind::Ident(_) => {}
+        ExprKind::Int(_) | ExprKind::Bool(_) | ExprKind::Str(_) | ExprKind::Ident(_) => {}
     }
 }
 
@@ -43,7 +43,7 @@ pub fn query_fn(m: &Module, name: &str) -> Option<String> {
     let callers: Vec<String> = m
         .items
         .iter()
-        .filter(|g| g.name != name && calls_of(g).contains(name))
+        .filter(|g| calls_of(g).contains(name))
         .map(|g| g.name.clone())
         .collect();
     let params: Vec<String> = f

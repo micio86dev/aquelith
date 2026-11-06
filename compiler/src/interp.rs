@@ -17,6 +17,7 @@ pub const MAX_DEPTH: usize = 256;
 pub enum Val {
     Int(i64),
     Bool(bool),
+    Str(String),
     Unit,
 }
 
@@ -100,6 +101,7 @@ fn run_body(
                 let v = match value {
                     Value::Int(i) => Val::Int(*i),
                     Value::Bool(b) => Val::Bool(*b),
+                    Value::Str(s) => Val::Str(s.clone()),
                 };
                 set(regs, *dst, v)?;
             }
@@ -187,6 +189,7 @@ fn fits(v: &Val, ty: Ty) -> bool {
     match (v, ty) {
         (Val::Int(i), Ty::I32 | Ty::U32) => in_range(*i, ty),
         (Val::Bool(_), Ty::Bool) => true,
+        (Val::Str(_), Ty::Str) => true,
         (Val::Unit, Ty::Unit) => true,
         _ => false,
     }

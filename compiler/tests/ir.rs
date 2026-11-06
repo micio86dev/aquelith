@@ -78,7 +78,7 @@ fn every_rejected_corpus_file_is_refused_and_has_no_ir() {
 fn count_exprs(m: &Module) -> usize {
     fn expr(e: &Expr) -> usize {
         1 + match &e.kind {
-            ExprKind::Int(_) | ExprKind::Bool(_) | ExprKind::Ident(_) => 0,
+            ExprKind::Int(_) | ExprKind::Bool(_) | ExprKind::Str(_) | ExprKind::Ident(_) => 0,
             ExprKind::Group(inner) => expr(inner),
             ExprKind::Call { args, .. } => args.iter().map(expr).sum(),
             ExprKind::Bin { lhs, rhs, .. } => expr(lhs) + expr(rhs),

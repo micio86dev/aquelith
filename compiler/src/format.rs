@@ -86,6 +86,7 @@ fn expr(e: &Expr, needed: u8) -> String {
             .parse::<u64>()
             .map_or_else(|_| text.clone(), |v| v.to_string()),
         ExprKind::Bool(b) => b.to_string(),
+        ExprKind::Str(s) => format!("\"{s}\""),
         ExprKind::Ident(n) => n.clone(),
         ExprKind::Call { callee, args } => {
             let parts: Vec<String> = args.iter().map(|a| expr(a, 0)).collect();
