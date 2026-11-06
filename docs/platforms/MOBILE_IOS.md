@@ -1,6 +1,6 @@
 # Mobile target: iOS (simulator first)
 
-Status: **proposed. Blocked on a toolchain that is not installed.** This is the first mobile target, chosen by the assistant under the owner's instruction to decide.
+Status: **deferred by the owner: no paid services for now.** Xcode and the simulator are free; the paid part is the Apple Developer account, needed for a physical device and distribution (milestone I4). Milestones I0 to I3 can be done at no cost once full Xcode is installed. This is the first mobile target, chosen by the assistant under the owner's instruction to decide.
 
 ## Blocker, found 2026-11-06
 
