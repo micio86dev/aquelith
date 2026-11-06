@@ -111,7 +111,7 @@ The full list of commands, codes and patch operations is in [skills/aqelith/SKIL
 
 ## Limits you should know
 
-- No server programs, no client-side state in pages, no imports, no strings in functions, no closures.
+- No server programs, no client-side state in pages, no imports, no closures. Strings in functions are `str` values with equality and return only; there is no concatenation.
 - The web target is static. Any text is HTML-escaped; routes must be lowercase paths.
 - Performance has not been measured on a reference machine. Build times and sizes in `docs/performance/` and `docs/reports/` are single samples on a development machine.
 - Security review of the compiler and the web target is in progress; see `docs/security/`.

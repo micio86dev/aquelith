@@ -30,8 +30,9 @@ Exit codes: `0` success; `1` diagnostics or function not found; `2` usage or I/O
 - Effects: a fixed core set (`io fs net time rand env proc concurrency ui unsafe`). A function that calls an effectful function must declare that effect in `uses`. A function with no `uses` is pure.
 - The last expression of a block (without `;`) is its value. There is no `return`.
 - `==` does not chain: write `(a == b) == c`.
+- Nesting and operator chains are bounded at 128 levels (`MAX_DEPTH`), so a long `a + b + ...` chain is refused with `PAR002` before it can exhaust the compiler's stack. Split long sums into `let` bindings.
 - No comments (`//` is LEX003). Put documentation in `docs/`.
-- String literals (`"..."`, printable ASCII, no `"` or `\`) appear only in page items. No string values in functions, no closures, assignment, `?`, imports, generics or traits.
+- String literals (`"..."`, printable ASCII, no `"` or `\`) appear in page items and, as type `str`, in functions. A `str` value can be a parameter, a return value, a `let` value, and the operand of `==`. Strings have no other operations: no concatenation, no length, no closures, assignment, `?`, imports, generics or traits.
 - Page items (ADR-0015): `page <name> "<route>" { ... }` with exactly these statements, each ending in `;`: `title "..."` (once), `h1 "..."`, `h2 "..."`, `p "..."`, `link "label" "/route"`. A route is `/` or a lowercase path without trailing slash. Pages are content only; they carry no markup, and a backend renders them. The formatter prints functions first, then pages.
   Fragment: `page home "/" { title "Notes"; h1 "Notes"; p "Text."; link "Next" "/next"; }`. A link must name a route of a page in the same module, so this fragment alone fails with PAGE005 until a page `"/next"` exists. The header is `page <name> "<route>"`: the name comes first, then the route. The link is `link "<label>" "<route>";`, label first. `page "/" {` (no name) and `link "/next" "Next";` (reversed) are rejected.
 

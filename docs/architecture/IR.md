@@ -6,7 +6,7 @@ Status: **implemented for the v0 function subset.** Source: `compiler/src/ir.rs`
 
 - Input: a module the checker accepts. `lower_module` returns `LowerError::Rejected` for any module with a diagnostic, and no IR is produced.
 - Covered: functions over `i32`, `u32`, `bool` and `unit`; `let`; expression statements; the tail expression; the operators `+ - * ==`; calls; parentheses; the effect list of each function (carried, not interpreted).
-- Not covered: page items (rendered by the web backend, not lowered), strings in functions (not in v0), and any execution of the IR (milestone S1).
+- Not covered: page items (rendered by the web backend, not lowered). String literals in functions lower to a `Const` of type `str` (S2).
 
 ## Types come from the checker
 
