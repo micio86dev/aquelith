@@ -3,5 +3,12 @@
 version = 4
 
 [[package]]
+name = "aqelith"
+version = "0.0.1"
+
+[[package]]
 name = "aqelith-web"
 version = "0.0.1"
+dependencies = [
+ "aqelith",
+]

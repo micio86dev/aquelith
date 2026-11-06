@@ -9,3 +9,4 @@ description = "AQELITH web target, first vertical slice (M6, ADR-0012). Not a re
 path = "src/lib.rs"
 
 [dependencies]
+aqelith = { path = "../compiler" }

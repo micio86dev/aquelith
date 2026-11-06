@@ -5,6 +5,9 @@
 
 use std::collections::BTreeMap;
 
+pub mod source;
+pub use source::{site_from_source, site_from_source_with_style, SourceError};
+
 /// Element tags the renderer accepts. Anything else is a build error.
 pub const ALLOWED_TAGS: &[&str] = &["main", "section", "header", "footer", "p", "h1", "h2", "h3", "ul", "li", "span", "div"];
 
@@ -234,17 +237,26 @@ pub fn render_page(page: &Page) -> Result<String, BuildError> {
         .map(|(id, op)| format!("{}:{}", json_string(id), op_json(op)))
         .collect();
     let cells: Vec<String> = page.cells.iter().map(|(k, v)| format!("{}:{v}", json_string(k))).collect();
+    // A page without state or handlers is static: it loads no script (a static route may sit in a
+    // subdirectory, where a relative runtime path would not resolve).
+    let scripts = if page.cells.is_empty() && out.handlers.is_empty() {
+        String::new()
+    } else {
+        format!(
+            "<script type=\"application/json\" id=\"aq-state\">{{{cells}}}</script>\n\
+<script type=\"application/json\" id=\"aq-handlers\">{{{handlers}}}</script>\n\
+<script src=\"aqelith-runtime.js\" defer></script>\n",
+            cells = cells.join(","),
+            handlers = handlers.join(","),
+        )
+    };
     Ok(format!(
         "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n\
 <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n\
-<title>{title}</title>\n</head>\n<body>\n{body}\n\
-<script type=\"application/json\" id=\"aq-state\">{{{cells}}}</script>\n\
-<script type=\"application/json\" id=\"aq-handlers\">{{{handlers}}}</script>\n\
-<script src=\"aqelith-runtime.js\" defer></script>\n</body>\n</html>\n",
+<title>{title}</title>\n</head>\n<body>\n{body}\n{scripts}</body>\n</html>\n",
         title = escape_html(&page.title),
         body = out.html,
-        cells = cells.join(","),
-        handlers = handlers.join(","),
+        scripts = scripts,
     ))
 }
 

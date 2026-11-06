@@ -1,0 +1,24 @@
+module landing
+
+page home "/" {
+    title "AQELITH: one language for agents";
+    h1 "Build software faster with one language";
+    p "AQELITH is a language made for coding agents. Every program is checked before it runs.";
+    link "How it works" "/how";
+    link "Get started" "/start";
+}
+
+page how "/how" {
+    title "How AQELITH works";
+    h1 "How it works";
+    h2 "Checked by the compiler";
+    p "Each change is checked with stable diagnostic codes an agent can read.";
+    link "Back home" "/";
+}
+
+page start "/start" {
+    title "Get started with AQELITH";
+    h1 "Get started";
+    p "Connect your coding agent with the guide in the docs folder.";
+    link "Back home" "/";
+}
