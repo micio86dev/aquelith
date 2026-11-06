@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Counter</title>
+</head>
+<body>
+<main><h1>Counter</h1><p>Value: <span data-bind="count">0</span></p><button type="button" data-handler="h1">Increment</button><button type="button" data-handler="h2">Decrement</button></main>
+<script type="application/json" id="aq-state">{"count":0}</script>
+<script type="application/json" id="aq-handlers">{"h1":{"op":"add","cell":"count","delta":1},"h2":{"op":"add","cell":"count","delta":-1}}</script>
+<script src="aqelith-runtime.js" defer></script>
+</body>
+</html>
