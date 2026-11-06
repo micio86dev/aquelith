@@ -33,3 +33,9 @@ Open: the owner reviews the `.expected` files before the result counts as confor
 ## Reporting rule
 
 A skipped or ignored case is never counted as a pass. The counts above are the only claim this report makes.
+
+## Decisions (2026-11-06)
+
+**Print format of the C1 corpus.** Decided by the assistant under the owner's instruction to decide. A value prints as: an integer in decimal; a boolean as `true` or `false`; a string in double quotes; a record as `Name { field: value, ... }` in declaration order; unit as `unit`. A function with parameters prints as `needs N argument(s)`; a function with a declared effect prints as `refused: effect X`. Any other implementation of the server target must produce this text for the corpus to count as conformant.
+
+**Platforms.** The first target is the Linux server, now on macOS arm64. Evidence: the C1 and C2 tests above passed on the macOS arm64 machine named in this report. Linux x86_64 is not yet run: it needs a runner. Desktop, mobile and embedded have no backend and are not started; each needs its own feature document before work begins.
