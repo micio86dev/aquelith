@@ -1,6 +1,6 @@
 target/
 
-# cargo-fuzz output (M7)
-fuzz/corpus/
-fuzz/artifacts/
-fuzz/target/
+# cargo-fuzz output (M7); recursive so that compiler/fuzz is covered too
+**/fuzz/corpus/
+**/fuzz/artifacts/
+**/fuzz/target/
