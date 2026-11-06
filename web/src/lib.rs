@@ -16,11 +16,16 @@ pub enum View {
     Button { label: String, op: Op },
     /// Displays the current value of a declared state cell.
     Bind { cell: String },
+    /// Controlled integer input for one declared cell (ADR-0013). The label is its accessible name.
+    Input { label: String, cell: String },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Op {
+    /// Adds a constant to a cell (button click).
     Add { cell: String, delta: i64 },
+    /// Sets a cell to the integer the user typed (input change). Invalid text is rejected at run time.
+    Set { cell: String },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -73,14 +78,34 @@ fn walk(v: &View, cells: &BTreeMap<String, i64>, out: &mut Out) -> Result<(), Bu
             let value = cells.get(cell).ok_or_else(|| BuildError::UnknownCell(cell.clone()))?;
             out.html.push_str(&format!("<span data-bind=\"{}\">{value}</span>", escape_html(cell)));
         }
+        View::Input { label, cell } => {
+            if label.trim().is_empty() {
+                return Err(BuildError::EmptyLabel);
+            }
+            let value = cells.get(cell).ok_or_else(|| BuildError::UnknownCell(cell.clone()))?;
+            out.next += 1;
+            let id = format!("h{}", out.next);
+            let dom_id = format!("aq-{id}");
+            out.html.push_str(&format!(
+                "<label for=\"{dom_id}\">{}</label> <input id=\"{dom_id}\" type=\"number\" step=\"1\" \
+data-handler=\"{id}\" data-input=\"{}\" value=\"{value}\">",
+                escape_html(label),
+                escape_html(cell)
+            ));
+            out.handlers.push((id, Op::Set { cell: cell.clone() }));
+        }
     }
     Ok(())
 }
 
 fn check_op(op: &Op, cells: &BTreeMap<String, i64>) -> Result<(), BuildError> {
-    match op {
-        Op::Add { cell, .. } if !cells.contains_key(cell) => Err(BuildError::UnknownCell(cell.clone())),
-        Op::Add { .. } => Ok(()),
+    let cell = match op {
+        Op::Add { cell, .. } | Op::Set { cell } => cell,
+    };
+    if cells.contains_key(cell) {
+        Ok(())
+    } else {
+        Err(BuildError::UnknownCell(cell.clone()))
     }
 }
 
@@ -111,6 +136,7 @@ pub fn render_page(page: &Page) -> Result<String, BuildError> {
 fn op_json(op: &Op) -> String {
     match op {
         Op::Add { cell, delta } => format!("{{\"op\":\"add\",\"cell\":{},\"delta\":{delta}}}", json_string(cell)),
+        Op::Set { cell } => format!("{{\"op\":\"set\",\"cell\":{}}}", json_string(cell)),
     }
 }
 
@@ -151,6 +177,26 @@ pub fn json_string(s: &str) -> String {
     }
     out.push('"');
     out
+}
+
+/// A form slice (ADR-0013): one number input bound to a cell, shown next to a button.
+pub fn form_page() -> Page {
+    Page {
+        title: "Quantity".to_string(),
+        cells: BTreeMap::from([("quantity".to_string(), 1)]),
+        body: View::Element {
+            tag: "main".to_string(),
+            children: vec![
+                View::Element { tag: "h1".to_string(), children: vec![View::Text("Order quantity".to_string())] },
+                View::Element {
+                    tag: "p".to_string(),
+                    children: vec![View::Text("Current: ".to_string()), View::Bind { cell: "quantity".to_string() }],
+                },
+                View::Input { label: "Quantity".to_string(), cell: "quantity".to_string() },
+                View::Button { label: "Add one".to_string(), op: Op::Add { cell: "quantity".to_string(), delta: 1 } },
+            ],
+        },
+    }
 }
 
 /// The first vertical slice: a counter with two buttons.

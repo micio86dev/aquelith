@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quantity</title>
+</head>
+<body>
+<main><h1>Order quantity</h1><p>Current: <span data-bind="quantity">1</span></p><label for="aq-h1">Quantity</label> <input id="aq-h1" type="number" step="1" data-handler="h1" data-input="quantity" value="1"><button type="button" data-handler="h2">Add one</button></main>
+<script type="application/json" id="aq-state">{"quantity":1}</script>
+<script type="application/json" id="aq-handlers">{"h1":{"op":"set","cell":"quantity"},"h2":{"op":"add","cell":"quantity","delta":1}}</script>
+<script src="aqelith-runtime.js" defer></script>
+</body>
+</html>

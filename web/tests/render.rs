@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use aqelith_web::{counter_page, escape_html, json_string, render_page, BuildError, Op, Page, View};
+use aqelith_web::{counter_page, escape_html, form_page, json_string, render_page, BuildError, Op, Page, View};
 
 fn page_with(body: View) -> Page {
     Page { title: "T".into(), cells: BTreeMap::from([("count".to_string(), 0)]), body }
@@ -83,4 +83,32 @@ fn unknown_cells_are_rejected_in_bindings_and_operations() {
     assert_eq!(render_page(&page_with(bind)).unwrap_err(), BuildError::UnknownCell("missing".into()));
     let op = View::Button { label: "x".into(), op: Op::Add { cell: "missing".into(), delta: 1 } };
     assert_eq!(render_page(&page_with(op)).unwrap_err(), BuildError::UnknownCell("missing".into()));
+}
+
+#[test]
+fn form_input_is_labelled_bound_and_wired_to_a_set_operation() {
+    let html = render_page(&form_page()).unwrap();
+    assert!(html.contains("<label for=\"aq-h1\">Quantity</label>"), "{html}");
+    assert!(html.contains("<input id=\"aq-h1\" type=\"number\" step=\"1\" data-handler=\"h1\" data-input=\"quantity\" value=\"1\">"), "{html}");
+    assert!(html.contains("\"h1\":{\"op\":\"set\",\"cell\":\"quantity\"}"), "{html}");
+    assert!(html.contains("<span data-bind=\"quantity\">1</span>"), "{html}");
+}
+
+#[test]
+fn form_input_needs_a_non_empty_label() {
+    let body = View::Input { label: " ".into(), cell: "count".into() };
+    assert_eq!(render_page(&page_with(body)).unwrap_err(), BuildError::EmptyLabel);
+}
+
+#[test]
+fn form_input_cells_must_be_declared() {
+    let body = View::Input { label: "x".into(), cell: "missing".into() };
+    assert_eq!(render_page(&page_with(body)).unwrap_err(), BuildError::UnknownCell("missing".into()));
+}
+
+#[test]
+fn form_labels_are_escaped() {
+    let body = View::Input { label: "<b>q</b>".into(), cell: "count".into() };
+    let html = render_page(&page_with(body)).unwrap();
+    assert!(html.contains("<label for=\"aq-h1\">&lt;b&gt;q&lt;/b&gt;</label>"), "{html}");
 }

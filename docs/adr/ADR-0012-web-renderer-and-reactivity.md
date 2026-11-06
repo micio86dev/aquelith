@@ -24,13 +24,13 @@ M6 needs a view-tree format, a renderer, reactivity and event handling. ADR-0006
 
 ## Consequences
 
-- Only counters-style interactions are expressible in this slice. Forms, routing and data fetching are not yet part of the view tree and are not claimed.
+- Only counters-style interactions and one controlled integer input (ADR-0013) are expressible in this slice. Routing, submit flows and data fetching are not yet part of the view tree and are not claimed.
 - Handler ids depend on document order. That is acceptable only because the table is generated per build with the page (ADR-0007).
 
 ## Evidence needed
 
 Evidence for this slice:
-- Automated: `web/tests/render.rs` (10 tests) checks the rendered HTML as strings: escaping, script-element breakout, allowlisted tags, accessible button names, unknown cells, and that only the external runtime is loaded as code.
-- Automated: `web/tests/runtime.test.mjs` (3 tests, `node --test web/tests/`) executes the real `aqelith-runtime.js` against a minimal DOM stub. It checks that a click repaints only the bindings of the changed cell, that the initial paint shows declared state, and that unknown handlers, undeclared cells and unsafe deltas change nothing. The stub is not a browser: it does not test layout, real event bubbling, or the HTML parser. Mutation check: making `paint` repaint every cell fails the per-cell test.
+- Automated: `web/tests/render.rs` (14 tests, including the input of ADR-0013) checks the rendered HTML as strings: escaping, script-element breakout, allowlisted tags, accessible button names, unknown cells, and that only the external runtime is loaded as code.
+- Automated: `web/tests/runtime.test.mjs` (6 tests, `node --test web/tests/runtime.test.mjs`, 3 of them for the counter) executes the real `aqelith-runtime.js` against a minimal DOM stub. It checks that a click repaints only the bindings of the changed cell, that the initial paint shows declared state, and that unknown handlers, undeclared cells and unsafe deltas change nothing. The stub is not a browser: it does not test layout, real event bubbling, or the HTML parser. Mutation check: making `paint` repaint every cell fails the per-cell test.
 - Manual, not automated: on 2026-11-06 the counter was served locally and clicked in Chrome; the value went 0 to 1 to 2 to 1 with both buttons. The embedded state JSON stayed at its initial value, as designed.
 - Not done: a browser test in CI, the accessibility checks, and the deployment-skew experiment. The per-cell repaint was checked in Chrome manually and, since the runtime test was added, also by the stub-based test above.
