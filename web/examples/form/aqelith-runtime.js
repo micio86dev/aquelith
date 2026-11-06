@@ -24,7 +24,8 @@
     }
   }
 
-  // Integer text only: no spaces, decimals or exponents. Returns null when the text is not a safe integer.
+  // Surrounding whitespace is trimmed; decimals, exponents and inner spaces are rejected.
+  // Returns null when the text is not a safe integer.
   function parseInteger(text) {
     const trimmed = String(text).trim();
     if (!/^-?\d+$/.test(trimmed)) return null;

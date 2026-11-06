@@ -11,7 +11,7 @@ ADR-0012 lists forms as not claimed. M6 still needs a first form that goes throu
 ## Decision
 
 1. **New view node** `Input { label, cell }`: a number input bound to one declared integer cell. The label is its accessible name and must not be empty. The renderer emits `<label for>` and `<input type="number" step="1">`, and the input gets a handler id like a button.
-2. **New operation** `set { cell }`. It is a declarative operation with no code. The runtime reads the typed text on `change`, and accepts it only if it matches `^-?\d+$` and is a safe integer. Anything else leaves the state unchanged and restores the input to the cell value.
+2. **New operation** `set { cell }`. It is a declarative operation with no code. The runtime reads the typed text on `change`, trims surrounding whitespace, and accepts it only if the rest matches `^-?\d+$` and is a safe integer. Anything else leaves the state unchanged and restores the input to the cell value.
 3. **Commit on change, not on each keystroke.** Each keystroke would mean a repaint and a state write; the owner's principle is fewer, explicit state changes.
 4. **No submit, no server validation.** There is no form submission in this slice. The value lives in the page state and is not sent anywhere.
 
