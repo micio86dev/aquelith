@@ -49,7 +49,7 @@ pub fn handle_line(line: &str) -> Option<String> {
             jstr(PROTOCOL)
         )),
         "ping" => ok_reply(&id, "{}"),
-        "tools/list" => ok_reply(&id, &format!("{{\"tools\":{TOOLS}}}")),
+        "tools/list" => ok_reply(&id, &format!("{{\"tools\":{}}}", TOOLS.replace('\n', ""))),
         "tools/call" => call(&id, msg.get("params")),
         _ => error_reply(&id, -32601, &format!("method not found: {method}")),
     })

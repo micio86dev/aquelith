@@ -43,6 +43,14 @@ fn notifications_get_no_reply() {
 }
 
 #[test]
+fn tools_list_is_one_line_so_stdio_clients_can_read_it() {
+    // The MCP stdio transport is one JSON message per line: a newline inside the reply stalls
+    // clients (Claude Code reported "tools fetch failed: Request timed out").
+    let reply = handle_line(r#"{"jsonrpc":"2.0","id":8,"method":"tools/list"}"#).unwrap();
+    assert!(!reply.contains('\n'), "reply spans several lines: {reply}");
+}
+
+#[test]
 fn tools_list_names_all_five_tools() {
     let reply = handle_line(r#"{"jsonrpc":"2.0","id":7,"method":"tools/list"}"#).unwrap();
     for name in [
