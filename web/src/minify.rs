@@ -1,11 +1,34 @@
 //! Conservative minifiers for the static build (S2). They remove only what cannot change what a
-//! browser shows: HTML comments and line breaks between tags, and CSS comments and whitespace
-//! next to punctuation. Text, headings, links, attribute values and CSS string literals are kept
-//! byte for byte. Spaces between two inline elements are kept, because they are visible.
+//! browser shows: HTML comments and the indentation between block-level tags, and CSS comments and
+//! whitespace next to punctuation. Text, headings, links, attribute values and CSS string literals
+//! are kept byte for byte. A line break between two inline elements is kept, because a browser
+//! renders it as a space.
 
-/// Minifies HTML written by the site generator. Whitespace that contains a line break and sits
-/// between a `>` and a `<` is dropped (indentation), a single space is kept (it can be visible),
-/// and `<!-- ... -->` comments are removed.
+/// Tags whose surrounding whitespace is layout only (block-level, or structure that browsers do
+/// not render as text). A tag not in this list is inline: whitespace next to it may be visible.
+const BLOCK_TAGS: &[&str] = &[
+    "!doctype", "html", "head", "body", "main", "section", "header", "footer", "div", "p", "h1",
+    "h2", "h3", "h4", "h5", "h6", "ul", "ol", "li", "meta", "link", "title", "script", "style",
+    "nav", "article", "aside", "table", "tr", "td", "th", "form",
+];
+
+/// Name of the tag that starts at the beginning of `s` (`<`, `</` and `!` are skipped).
+fn tag_name(s: &str) -> &str {
+    let s = s.strip_prefix('<').unwrap_or(s);
+    let s = s.strip_prefix('/').unwrap_or(s);
+    let end = s
+        .find(|c: char| c.is_whitespace() || c == '>' || c == '/')
+        .unwrap_or(s.len());
+    &s[..end]
+}
+
+fn is_block(name: &str) -> bool {
+    BLOCK_TAGS.contains(&name.to_ascii_lowercase().as_str())
+}
+
+/// Minifies HTML written by the site generator. Whitespace that contains a line break is dropped
+/// only when the tag before it or the tag after it is block-level; a single space is never dropped
+/// (it can be visible). `<!-- ... -->` comments are removed.
 pub fn minify_html(html: &str) -> String {
     let without_comments = strip_html_comments(html);
     let mut out = String::with_capacity(without_comments.len());
@@ -14,8 +37,15 @@ pub fn minify_html(html: &str) -> String {
         out.push_str(&rest[..=i]);
         rest = &rest[i + 1..];
         let ws = &rest[..rest.len() - rest.trim_start().len()];
-        if ws.contains('\n') && rest[ws.len()..].starts_with('<') {
-            rest = &rest[ws.len()..];
+        let after = &rest[ws.len()..];
+        if ws.contains('\n') && after.starts_with('<') {
+            let before_block = out
+                .rfind('<')
+                .is_some_and(|at| is_block(tag_name(&out[at..])));
+            let after_block = is_block(tag_name(after));
+            if before_block || after_block {
+                rest = after;
+            }
         }
     }
     // Whitespace after the last tag is layout only; it is dropped.
@@ -120,15 +150,34 @@ mod tests {
 
     #[test]
     fn html_keeps_text_and_inline_spacing() {
-        // A space between two links is visible and must stay; a line break is layout only.
+        // A space between two links is visible and must stay.
         let html = "<a href=\"/a\">A</a> <a href=\"/b\">B</a>";
         assert_eq!(minify_html(html), html);
         assert_eq!(minify_html("<p>a  b</p>"), "<p>a  b</p>");
     }
 
     #[test]
+    fn html_keeps_a_line_break_between_inline_elements() {
+        // A browser renders this line break as a space, so it must stay.
+        let html = "<a href=\"/a\">A</a>\n<a href=\"/b\">B</a>";
+        assert_eq!(minify_html(html), html);
+        // Block boundaries lose their indentation.
+        assert_eq!(
+            minify_html("<p>x</p>\n  <a href=\"/\">A</a>"),
+            "<p>x</p><a href=\"/\">A</a>"
+        );
+        assert_eq!(
+            minify_html("<a href=\"/\">A</a>\n<p>x</p>"),
+            "<a href=\"/\">A</a><p>x</p>"
+        );
+    }
+
+    #[test]
     fn html_removes_comments_but_not_unterminated_ones() {
-        assert_eq!(minify_html("<p>x</p><!-- note --><p>y</p>"), "<p>x</p><p>y</p>");
+        assert_eq!(
+            minify_html("<p>x</p><!-- note --><p>y</p>"),
+            "<p>x</p><p>y</p>"
+        );
         assert_eq!(minify_html("<p>x</p><!-- open"), "<p>x</p><!-- open");
     }
 
@@ -141,13 +190,22 @@ mod tests {
     #[test]
     fn css_keeps_descendant_space_and_calc_operators() {
         assert_eq!(minify_css("a :hover { x: 1 }"), "a :hover{x:1}");
-        assert_eq!(minify_css("p { width: calc(1px + 2px) }"), "p{width:calc(1px + 2px)}");
+        assert_eq!(
+            minify_css("p { width: calc(1px + 2px) }"),
+            "p{width:calc(1px + 2px)}"
+        );
     }
 
     #[test]
     fn css_keeps_string_literals_exactly() {
-        assert_eq!(minify_css("p::before { content: \"a   /* b */  c\" }"), "p::before{content:\"a   /* b */  c\"}");
-        assert_eq!(minify_css("q { content: 'it\\'s  ok' }"), "q{content:'it\\'s  ok'}");
+        assert_eq!(
+            minify_css("p::before { content: \"a   /* b */  c\" }"),
+            "p::before{content:\"a   /* b */  c\"}"
+        );
+        assert_eq!(
+            minify_css("q { content: 'it\\'s  ok' }"),
+            "q{content:'it\\'s  ok'}"
+        );
     }
 
     #[test]

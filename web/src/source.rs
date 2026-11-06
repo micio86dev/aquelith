@@ -56,7 +56,10 @@ pub const STATIC_CSP: &str =
 
 /// The static build: the pages with their stylesheet link, the CSP meta element, and minified
 /// HTML (S2, S4). The stylesheet itself is minified by the caller, which copies the file.
-pub fn static_site(src: &str, style_href: Option<&str>) -> Result<Vec<(String, String)>, SourceError> {
+pub fn static_site(
+    src: &str,
+    style_href: Option<&str>,
+) -> Result<Vec<(String, String)>, SourceError> {
     let files = match style_href {
         Some(href) => site_from_source_with_style(src, href)?,
         None => site_from_source(src)?,
@@ -64,9 +67,8 @@ pub fn static_site(src: &str, style_href: Option<&str>) -> Result<Vec<(String, S
     // STATIC_CSP holds no double quote or ampersand, so it needs no escaping inside the
     // double-quoted attribute; single quotes stay literal (a `&#39;` each would cost 4 bytes).
     debug_assert!(!STATIC_CSP.contains(['"', '&', '<']));
-    let csp = format!(
-        "<meta http-equiv=\"Content-Security-Policy\" content=\"{STATIC_CSP}\">\n</head>"
-    );
+    let csp =
+        format!("<meta http-equiv=\"Content-Security-Policy\" content=\"{STATIC_CSP}\">\n</head>");
     Ok(files
         .into_iter()
         .map(|(path, html)| {

@@ -36,13 +36,16 @@ fn main() {
     for (path, html) in &files {
         let target = dir.join(path);
         let parent = target.parent().unwrap_or(&dir);
-        std::fs::create_dir_all(parent).unwrap_or_else(|e| fail(2, format!("{}: {e}", parent.display())));
-        std::fs::write(&target, html).unwrap_or_else(|e| fail(2, format!("{}: {e}", target.display())));
+        std::fs::create_dir_all(parent)
+            .unwrap_or_else(|e| fail(2, format!("{}: {e}", parent.display())));
+        std::fs::write(&target, html)
+            .unwrap_or_else(|e| fail(2, format!("{}: {e}", target.display())));
     }
     if let Some(css) = style_css {
         let target = dir.join("style.css");
         let minified = aqelith_web::minify_css(&css);
-        std::fs::write(&target, minified).unwrap_or_else(|e| fail(2, format!("{}: {e}", target.display())));
+        std::fs::write(&target, minified)
+            .unwrap_or_else(|e| fail(2, format!("{}: {e}", target.display())));
     }
     println!("wrote {} pages to {}", files.len(), dir.display());
 }
