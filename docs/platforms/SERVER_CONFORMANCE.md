@@ -34,8 +34,12 @@ Open: the owner reviews the `.expected` files before the result counts as confor
 
 A skipped or ignored case is never counted as a pass. The counts above are the only claim this report makes.
 
+## Linux x86_64 run (2026-11-06)
+
+Run in a `linux/amd64` container (`rust:1.89-slim`) on the Apple Silicon machine, offline (`--network=none`), with the repository mounted read-only and a copy built in `/work`. The container reported `x86_64`. Result: `conformance_server` passed 5 of 5, 0 ignored. This is emulated x86_64 Linux under Docker, not a native Linux machine; a native run is still wanted before a Linux support claim.
+
 ## Decisions (2026-11-06)
 
-**Print format of the C1 corpus.** Decided by the assistant under the owner's instruction to decide. A value prints as: an integer in decimal; a boolean as `true` or `false`; a string in double quotes; a record as `Name { field: value, ... }` in declaration order; unit as `unit`. A function with parameters prints as `needs N argument(s)`; a function with a declared effect prints as `refused: effect X`. Any other implementation of the server target must produce this text for the corpus to count as conformant.
+**Print format of the C1 corpus.** Decided by the assistant under the owner's instruction to decide. A value prints as: an integer in decimal; a boolean as `true` or `false`; a string in double quotes; a record as `Name { field: value, ... }` in declaration order; unit as `unit`. A function with parameters prints as `needs N argument(s)`; a function with a declared effect prints as `refused: effect X`. Any other implementation of the server target must produce this text for the corpus to count as conformant. Rationale: each value prints in the one form that shows its type, and records and refusals stay visible in the output, so a difference is easy to spot.
 
 **Platforms.** The first target is the Linux server, now on macOS arm64. Evidence: the C1 and C2 tests above passed on the macOS arm64 machine named in this report. Linux x86_64 is not yet run: it needs a runner. Desktop, mobile and embedded have no backend and are not started; each needs its own feature document before work begins.

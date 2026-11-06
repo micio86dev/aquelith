@@ -8,8 +8,8 @@ Status: **Proposed.** Each target below starts only when its feature document is
 |---|---|---|
 | Web (browser), static pages | Built | `web/` tests, landing browser test |
 | Server, loopback HTTP, macOS arm64 | Minimal. C2 (loopback HTTP) passes; C1 passes on 4 corpus files, expected outputs pending owner review | `compiler/tests/serve.rs`, `conformance_server.rs`, [SERVER_CONFORMANCE.md](SERVER_CONFORMANCE.md) |
-| Server, Linux x86_64 | Minimal, not run | Needs a runner |
-| Desktop, macOS arm64 | Started: D1 done (static view, link navigation), see [DESKTOP_MACOS.md](DESKTOP_MACOS.md) | `desktop/macos/check.sh` |
+| Server, Linux x86_64 | Minimal. Conformance passed 5 of 5 under emulation (`linux/amd64` container); native run pending | [SERVER_CONFORMANCE.md](SERVER_CONFORMANCE.md) |
+| Desktop, macOS arm64 | Started: static view and route switch done; click path unverified; D2 partly done. See [DESKTOP_MACOS.md](DESKTOP_MACOS.md) | `desktop/macos/check.sh` |
 | Desktop, Linux and Windows | No backend | none |
 | Mobile (iOS, Android) | No backend | none |
 | Embedded and constrained | No backend | none |
@@ -17,7 +17,7 @@ Status: **Proposed.** Each target below starts only when its feature document is
 
 ## Order and dependencies
 
-1. **Linux x86_64 server, conformance run.** Blocked on a runner, not on code. Milestone: run `conformance_server` on a Linux x86_64 machine and record the output in SERVER_CONFORMANCE.md.
+1. **Linux x86_64 server, conformance run.** Done under emulation: `conformance_server` passed 5 of 5 in a `linux/amd64` Docker container. A native Linux x86_64 machine is still needed before a Linux support claim.
 2. **Server production hardening.** The host is a loopback development host. Needed before any server target is called supported: TLS or an explicit non-loopback decision, authentication, and a process model that is not one connection at a time (threat model, residual risks).
 3. **Record types in the language beyond request and response.** Needed by every target that exchanges data. Records are implemented for v0 ([RECORDS.md](../language/RECORDS.md)).
 4. **Desktop (one OS first).** Requires a native window interface, an event loop, and a renderer conformance suite (C3). Choose one operating system first; the other two follow the same interface.
@@ -27,7 +27,7 @@ Status: **Proposed.** Each target below starts only when its feature document is
 
 ## Decisions the owner must make
 
-- The first desktop operating system (macOS, Linux or Windows).
+- The first mobile operating system (iOS or Android). The first desktop operating system is macOS arm64, chosen by the assistant under the owner's instruction to decide ([DESKTOP_MACOS.md](DESKTOP_MACOS.md)).
 - The first mobile operating system (iOS or Android).
 - Whether to provide a Linux x86_64 runner, and where.
 - The memory model for the first non-web target (decision D3 in SERVER_LINUX_PLAN.md).

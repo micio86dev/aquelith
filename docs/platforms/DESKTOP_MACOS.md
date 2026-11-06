@@ -1,6 +1,6 @@
 # Desktop target: macOS arm64
 
-Status: **started. Milestone D1 done; D2 and later not started.** This is the first desktop target, chosen by the assistant under the owner's instruction to decide. Roadmap: [ROADMAP.md](ROADMAP.md).
+Status: **started. D1 done; D2 partly done (accessibility and width checked); D3 and later not started.** This is the first desktop target, chosen by the assistant under the owner's instruction to decide. Roadmap: [ROADMAP.md](ROADMAP.md).
 
 ## Design
 
@@ -12,7 +12,7 @@ The language does not know about windows. `aqelith view <file.aq>` checks a modu
 |---|---|---|---|
 | D0 | A checked module's first page is drawn in one window: title, headings, paragraphs, links | Done | `desktop/macos/check.sh` renders routes `/`, `/how`, `/start` to PNG; the PNGs were inspected |
 | D1 | A link switches to the page with that route; an unknown route fails with exit 1 | Done for the route option and the switch in code | `aqhost --route /how` and `--route /nope`; the click path itself is not automated |
-| D2 | Real window behaviour: resizing, keyboard navigation to every link, focus, accessibility names for every control | Not started | — |
+| D2 | Window behaviour: text wraps when the window is resized; every control has a role and a label; every link is a focusable button | Partly done | `check.sh`: accessibility per route (links, labels), width (a narrow window is taller). Keyboard focus order and VoiceOver are not checked |
 | D3 | Renderer conformance (C3, [CONFORMANCE.md](CONFORMANCE.md) section 4) | Not started | — |
 | D4 | Signed application bundle, install and uninstall | Not started | — |
 

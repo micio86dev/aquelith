@@ -47,10 +47,13 @@ final class Host: NSObject {
     let stack = NSStackView()
     var current: Page
 
-    init(pages: [Page], start: Page) {
+    let width: CGFloat
+
+    init(pages: [Page], start: Page, width: CGFloat) {
         self.pages = pages
         self.current = start
-        self.window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 640, height: 480),
+        self.width = width
+        self.window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: width, height: 480),
                                styleMask: [.titled, .closable, .resizable],
                                backing: .buffered, defer: false)
         super.init()
@@ -80,13 +83,18 @@ final class Host: NSObject {
             let view: NSView
             switch item.kind {
             case "heading":
-                let label = NSTextField(labelWithString: item.text)
+                let label = NSTextField(wrappingLabelWithString: item.text)
+                label.preferredMaxLayoutWidth = width - 48
                 let size: CGFloat = item.level == 1 ? 28 : 20
                 label.font = NSFont.boldSystemFont(ofSize: size)
+                label.setAccessibilityRole(.staticText)
+                label.setAccessibilityLabel(item.text)
                 view = label
             case "para":
                 let label = NSTextField(wrappingLabelWithString: item.text)
-                label.preferredMaxLayoutWidth = 592
+                label.preferredMaxLayoutWidth = width - 48
+                label.setAccessibilityRole(.staticText)
+                label.setAccessibilityLabel(item.text)
                 view = label
             case "link":
                 let button = NSButton(title: "", target: self, action: #selector(followLink(_:)))
@@ -97,13 +105,15 @@ final class Host: NSObject {
                     .font: NSFont.systemFont(ofSize: NSFont.systemFontSize),
                 ])
                 button.identifier = NSUserInterfaceItemIdentifier(item.href)
+                button.setAccessibilityRole(.button)
+                button.setAccessibilityLabel(item.text)
                 view = button
             default:
                 continue
             }
             stack.addArrangedSubview(view)
         }
-        window.setContentSize(NSSize(width: 640, height: max(200, stack.fittingSize.height)))
+        window.setContentSize(NSSize(width: width, height: max(200, stack.fittingSize.height)))
     }
 
     @objc func followLink(_ sender: NSButton) {
@@ -111,6 +121,17 @@ final class Host: NSObject {
         if let target = pages.first(where: { $0.route == href }) {
             show(target)
         }
+    }
+
+    func accessibilityLines() -> [String] {
+        var lines: [String] = []
+        for v in stack.arrangedSubviews {
+            let role = v.accessibilityRole()?.rawValue ?? "none"
+            let label = v.accessibilityLabel() ?? ""
+            let focus = (v is NSButton) ? "focusable" : "not-focusable"
+            lines.append("\(role)\t\(label)\t\(focus)")
+        }
+        return lines
     }
 
     func snapshot(to path: String) {
@@ -135,6 +156,8 @@ guard argv.count >= 2 else {
 }
 var route: String? = nil
 var snapshotPath: String? = nil
+var axDump = false
+var width: CGFloat = 640
 var i = 2
 while i < argv.count {
     switch argv[i] {
@@ -142,6 +165,14 @@ while i < argv.count {
         route = argv[i + 1]; i += 2
     case "--snapshot" where i + 1 < argv.count:
         snapshotPath = argv[i + 1]; i += 2
+    case "--width" where i + 1 < argv.count:
+        guard let w = Double(argv[i + 1]), w >= 200 else {
+            fputs("aqhost: --width needs a number of at least 200\n", stderr)
+            exit(2)
+        }
+        width = CGFloat(w); i += 2
+    case "--ax-dump":
+        axDump = true; i += 1
     default:
         fputs("aqhost: unknown argument \(argv[i])\n", stderr)
         exit(2)
@@ -154,7 +185,15 @@ guard let start = pages.first(where: { route == nil ? true : $0.route == route! 
 }
 let app = NSApplication.shared
 app.setActivationPolicy(snapshotPath == nil ? .regular : .prohibited)
-let host = Host(pages: pages, start: start)
+let host = Host(pages: pages, start: start, width: width)
+if axDump {
+    // Prints one line per control: role, label, and whether it can take keyboard focus.
+    host.window.contentView?.layoutSubtreeIfNeeded()
+    for line in host.accessibilityLines() {
+        print(line)
+    }
+    exit(0)
+}
 host.window.makeKeyAndOrderFront(nil)
 if let out = snapshotPath {
     host.snapshot(to: out)
