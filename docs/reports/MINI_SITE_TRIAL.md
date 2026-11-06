@@ -57,6 +57,30 @@ How to read it:
 - The times are not the same operation. AQELITH's number is a compile; the plain number is a copy. Only the authoring times are comparable, and each is a sample of one.
 - The plain agent left out the `site.aq` and `dist/` deliverables, because the spec does not name a build step for plain files. That is a flaw in the spec, not a result.
 
+## Six sessions: three per arm, same spec and harness
+
+Date: 2026-11-06. Each run was a fresh headless `claude -p` session in an empty folder, with the same spec (now asking for one stylesheet) and a per-arm `CLAUDE.md`. Runs were sequential. Raw logs stay outside the repository.
+
+| Arm | Run | Wall time (ms) | Tool calls | MCP calls | Terms found (of 10) | Broken links | HTML raw / gzip | CSS raw / gzip |
+|---|---|---|---|---|---|---|---|---|
+| AQELITH | 1 | 31574 | 8 | 0 | 10 | 0 | 2195 / 1390 | 165 / 146 |
+| AQELITH | 2 | 31392 | 8 | 0 | 10 | 0 | 2195 / 1390 | 284 / 220 |
+| AQELITH | 3 | 38767 | 10 | 0 | 10 | 0 | 2195 / 1390 | 176 / 158 |
+| Plain HTML | 1 | 28942 | 7 | 0 | 10 | 0 | 2043 / 1223 | 848 / 441 |
+| Plain HTML | 2 | 40934 | 11 | 0 | 10 | 0 | 2027 / 1212 | 843 / 419 |
+| Plain HTML | 3 | 52184 | 14 | 0 | 10 | 0 | 2043 / 1223 | 760 / 405 |
+
+Medians: AQELITH wall time 31.6 s, 8 tool calls. Plain HTML 40.9 s, 11 tool calls.
+
+What the numbers support, and what they do not:
+
+- **No measurable difference in authoring time at this size.** The AQELITH range is 31.4 to 38.8 s; the plain range is 28.9 to 52.2 s. The ranges overlap, so the protocol's rule says: no conclusion.
+- **Both arms passed the content check** in all six runs.
+- **The AQELITH agents did not use the MCP tools.** All three called the `aqelith` command-line binary through Bash, because the `CLAUDE.md` gave its path. The MCP server was connected and available. The MCP route was therefore not exercised by these runs, and the guide should say so.
+- **The plain-HTML agents used a memory tool** from the user's global configuration in one run. That is not part of the plain arm's design, and it may have added calls.
+- **Output sizes differ in the stylesheet, not in the HTML.** The AQELITH build minifies its CSS, so its stylesheet is about a quarter of the plain one. The HTML is larger on the AQELITH side because of the CSP meta element (about 130 bytes per page).
+- Totals are not a speed claim. Three runs per arm is a small sample.
+
 ## Next step
 
-Repeat both arms at least three times, with a stylesheet in both, and measure the AQELITH build as a separate step. Then decide whether the gap in size and time is larger than the spread between runs.
+Repeat the MCP route: a run whose `CLAUDE.md` tells the agent to call the `aqelith_check` tool, to see whether it uses the server rather than the binary. Then decide whether the gap in authoring time is larger than the spread between runs, with more runs.
