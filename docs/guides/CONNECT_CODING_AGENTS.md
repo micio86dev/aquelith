@@ -135,10 +135,11 @@ Those limits decide what an experiment can measure today. Page items cover a sta
 | Step | Verified by | Result |
 |---|---|---|
 | Binaries build | `cargo build --release --bins` | Yes, 2026-11-06 |
-| MCP handshake and tool list | stdio probe above | Yes |
-| `aqelith_check` call | stdio probe | Yes, `ok: true` on a valid module |
+| MCP handshake and tool list | stdio probe above, with stdin kept open | Yes, 2026-11-06 (the tools list was a multi-line reply until commit `38d2d05`, which stalled Claude Code) |
+| `aqelith_check` call | stdio probe | Yes, `ok` on a valid module |
 | `claude mcp add` / `codex mcp add` syntax | `--help` of the installed CLIs | Yes |
-| Real Claude Code session using the tools | not run | **Pending, by the user** |
+| Real Claude Code session using the tools | `claude -p` with the MCP server, deliberate type error | Yes, 2026-11-06: the tool was called and returned `TYP001` |
+| Real Claude Code session writing a four-page site | `claude -p` in a fresh folder, see `docs/reports/MINI_SITE_TRIAL.md` | Yes, 2026-11-06: 6 tool calls, 18.5 s, 0 diagnostics, build passed |
 | Real Codex session using the tools | not run | **Pending, by the user** |
 
-To check the last two rows: open a session in each client, ask it to run `aqelith_check` on a small module with a deliberate type error, and confirm it reports the code `TYP001` rather than guessing.
+Claude Code is connected through `claude mcp add --scope user aqelith`, and the skill is copied to `~/.claude/skills/aqelith/SKILL.md`. Both are in the user's configuration, not in the repository.
