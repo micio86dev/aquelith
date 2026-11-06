@@ -25,6 +25,11 @@ a {
   color: LinkText;
 }
 
+main a {
+  display: inline-block;
+  margin-right: 1rem;
+}
+
 a:focus-visible {
   outline: 3px solid LinkText;
   outline-offset: 2px;

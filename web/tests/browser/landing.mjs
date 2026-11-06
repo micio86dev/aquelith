@@ -55,7 +55,7 @@ async function dump(url) {
 }
 
 const routes = [
-  ["/", "Build software faster with one language"],
+  ["/", "One language for coding agents"],
   ["/how", "How it works"],
   ["/start", "Get started"],
 ];

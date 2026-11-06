@@ -2,7 +2,7 @@ module landing
 
 page home "/" {
     title "AQELITH: one language for agents";
-    h1 "Build software faster with one language";
+    h1 "One language for coding agents";
     p "AQELITH is a language made for coding agents. Every program is checked before it runs.";
     link "How it works" "/how";
     link "Get started" "/start";

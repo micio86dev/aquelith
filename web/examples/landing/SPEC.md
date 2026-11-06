@@ -6,7 +6,7 @@ Build a static site with three pages. Serve it so that each route opens its own 
 
 1. Route `/`
    - Document title: `AQELITH: one language for agents`
-   - Heading level 1: `Build software faster with one language`
+   - Heading level 1: `One language for coding agents`
    - Paragraph: `AQELITH is a language made for coding agents. Every program is checked before it runs.`
    - Link to `/how` with the text `How it works`
    - Link to `/start` with the text `Get started`
