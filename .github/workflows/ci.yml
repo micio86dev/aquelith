@@ -1,0 +1,30 @@
+# CI for the compiler and the web target (M7). Written in M7; NOT yet run on GitHub: the
+# repository has no remote, and publishing one is gated (see docs/branding/BRAND_DECISION.md).
+name: ci
+on:
+  push:
+  pull_request:
+jobs:
+  compiler:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: compiler
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.89.0
+        with:
+          components: clippy
+      - run: cargo test --all-targets
+      - run: cargo clippy --all-targets -- -D warnings
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.89.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - run: cargo test
+        working-directory: web
+      - run: node --test web/tests/runtime.test.mjs

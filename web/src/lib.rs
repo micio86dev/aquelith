@@ -18,6 +18,8 @@ pub enum View {
     Bind { cell: String },
     /// Controlled integer input for one declared cell (ADR-0013). The label is its accessible name.
     Input { label: String, cell: String },
+    /// Link to a route of the same site (ADR-0014). `href` must be a path starting with one `/`.
+    Link { label: String, href: String },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -40,6 +42,12 @@ pub enum BuildError {
     BadTag(String),
     EmptyLabel,
     UnknownCell(String),
+    /// A link whose href is not a same-site path (external URLs, schemes, protocol-relative `//`).
+    BadHref(String),
+    /// A route that is not a clean path, or appears twice.
+    BadRoute(String),
+    /// A link to a route the site does not have.
+    BrokenLink(String),
 }
 
 struct Out {
@@ -78,6 +86,15 @@ fn walk(v: &View, cells: &BTreeMap<String, i64>, out: &mut Out) -> Result<(), Bu
             let value = cells.get(cell).ok_or_else(|| BuildError::UnknownCell(cell.clone()))?;
             out.html.push_str(&format!("<span data-bind=\"{}\">{value}</span>", escape_html(cell)));
         }
+        View::Link { label, href } => {
+            if label.trim().is_empty() {
+                return Err(BuildError::EmptyLabel);
+            }
+            if !is_same_site_path(href) {
+                return Err(BuildError::BadHref(href.clone()));
+            }
+            out.html.push_str(&format!("<a href=\"{}\">{}</a>", escape_html(href), escape_html(label)));
+        }
         View::Input { label, cell } => {
             if label.trim().is_empty() {
                 return Err(BuildError::EmptyLabel);
@@ -96,6 +113,66 @@ data-handler=\"{id}\" data-input=\"{}\" value=\"{value}\">",
         }
     }
     Ok(())
+}
+
+/// A same-site path: starts with exactly one `/`, has no backslash, control character or dot segment.
+fn is_same_site_path(href: &str) -> bool {
+    href.starts_with('/')
+        && !href.starts_with("//")
+        && !href.contains('\\')
+        && !href.chars().any(char::is_control)
+        && !href.split('/').any(|seg| seg == "." || seg == "..")
+}
+
+/// Route paths: `/` or `/a/b` with no trailing slash, dot segments or query parts.
+fn is_route(path: &str) -> bool {
+    path == "/" || (is_same_site_path(path) && !path.ends_with('/') && !path.contains('?') && !path.contains('#'))
+}
+
+/// Files for one route: `/` is `index.html`; `/about` is `about/index.html`.
+pub fn route_file(route: &str) -> String {
+    if route == "/" {
+        "index.html".to_string()
+    } else {
+        format!("{}/index.html", route.trim_start_matches('/'))
+    }
+}
+
+/// A site: each route renders one page. Pages keep the single-page rules of `render_page`.
+pub struct Site {
+    pub routes: Vec<(String, Page)>,
+}
+
+/// Renders every route to a (file path, html) pair. Checks route syntax, duplicates and that every
+/// link names a route of the site.
+pub fn render_site(site: &Site) -> Result<Vec<(String, String)>, BuildError> {
+    let mut seen: Vec<&str> = Vec::new();
+    for (route, _) in &site.routes {
+        if !is_route(route) || seen.contains(&route.as_str()) {
+            return Err(BuildError::BadRoute(route.clone()));
+        }
+        seen.push(route);
+    }
+    let mut out = Vec::new();
+    for (route, page) in &site.routes {
+        // Rendering first: it validates each href's form before the site-level link check.
+        let html = render_page(page)?;
+        let mut links = Vec::new();
+        collect_links(&page.body, &mut links);
+        if let Some(missing) = links.iter().find(|href| !seen.contains(&href.as_str())) {
+            return Err(BuildError::BrokenLink(missing.clone()));
+        }
+        out.push((route_file(route), html));
+    }
+    Ok(out)
+}
+
+fn collect_links(v: &View, out: &mut Vec<String>) {
+    match v {
+        View::Element { children, .. } => children.iter().for_each(|c| collect_links(c, out)),
+        View::Link { href, .. } => out.push(href.clone()),
+        View::Text(_) | View::Button { .. } | View::Bind { .. } | View::Input { .. } => {}
+    }
 }
 
 fn check_op(op: &Op, cells: &BTreeMap<String, i64>) -> Result<(), BuildError> {
