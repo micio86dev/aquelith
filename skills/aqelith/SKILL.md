@@ -17,6 +17,7 @@ Status: **v0 subset.** Only what is listed here works. Anything else is a compil
 | `aqelith query <file> <function>` | Callers and callees of one function | One JSON object: name, params, return, uses, calls, called_by |
 | `aqelith patch <file> <patch.json> [--dry-run]` | Apply a semantic patch with preconditions (see below) | One JSON object: `accepted`, `dry-run` or `rejected` |
 | `aqelith explain <CODE>` | Meaning of a stable diagnostic code | One line |
+| `aqelith-mcp` | MCP server over stdio (JSON-RPC, one message per line) | Tools `aqelith_check`, `aqelith_format`, `aqelith_query`, `aqelith_explain`, `aqelith_patch`; text in, JSON out. Never reads or writes files |
 
 Exit codes: `0` success; `1` diagnostics or function not found; `2` usage or I/O error.
 
@@ -62,6 +63,10 @@ A patch is a JSON document. The compiler decides whether it applies; a rejected 
 - Use `--dry-run` first. Exit codes: `0` accepted or dry-run, `1` rejected, `2` usage or I/O error.
 - Not implemented: `replace`, `insert`, `delete`, `set-field`, persistent ids. A target that is not a function name is rejected as PAT004.
 
+## MCP server
+
+`aqelith-mcp` speaks MCP protocol 2024-11-05 over stdin and stdout, one JSON-RPC message per line. Every tool takes source text as an argument. `aqelith_patch` returns a candidate with `status` "candidate" and never writes; a rejected patch is returned with `isError` true and its PAT code. To write, the agent passes the candidate to `aqelith patch` or `aqelith fmt --write`.
+
 ## Workflow for an agent
 
 1. Run `aqelith check file.aq --json`. Fix diagnostics by code, starting with the first one.
@@ -71,4 +76,4 @@ A patch is a JSON document. The compiler decides whether it applies; a rejected 
 
 ## Not available in v0 (do not promise)
 
-JSON-RPC daemon, MCP server, web runtime, native backends, package manager, capabilities at run time. These are planned in `docs/`.
+JSON-RPC daemon, web runtime, native backends, package manager, capabilities at run time. These are planned in `docs/`.

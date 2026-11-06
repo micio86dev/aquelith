@@ -73,12 +73,11 @@ fn accepted_corpus() -> Vec<String> {
 }
 
 fn check_source_invariants(text: &str) {
-    let diags = check_source(text);
+    let _ = check_source(text);
     if let Ok(formatted) = format_source(text) {
         let again = format_source(&formatted).expect("formatted text must parse");
         assert_eq!(again, formatted, "formatter is not idempotent for {text:?}");
     }
-    let _ = diags;
 }
 
 #[test]

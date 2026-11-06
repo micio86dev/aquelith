@@ -31,3 +31,4 @@ Objective: build the M4 foundation (v0 compiler subset), then M5 to M8 as far as
 - L5 (2026-11-06, owner): "Scegli tu il miglior ordine ma vai avanti fino a completare tutto". Order chosen: M5 patch slice, M7 fuzzing, M6 forms (ADR amendment), M8 MCP. Done so far: M5 patch slice.
 - L6: M7 deterministic fuzzing added (tests/fuzz.rs). Mutation check: an unwrap on integer overflow in json.rs is caught by mutated_json_never_panics. Coverage-guided fuzzing and sanitizers remain open (no CI in repo, no runtime).
 - L7: M6 form slice (ADR-0013): controlled integer input, examples/form. Chrome checked with dispatched change events. Submit, routing and accessibility checks remain open.
+- L8: M8 MCP server (`aqelith-mcp`, compiler/src/mcp.rs, tests/mcp.rs). Text-only tools; no file access. Mutation check: answering notifications fails notifications_get_no_reply. Tests and clippy green.
