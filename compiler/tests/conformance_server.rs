@@ -1,6 +1,6 @@
 // Conformance of the Linux server target (docs/platforms/SERVER_CONFORMANCE.md).
 // Interface under test: loopback HTTP. Each case has an expected status and body, compared exactly.
-// A case that cannot run is reported as skipped with its reason, never as a pass.
+// A case that cannot run makes its test fail; nothing is skipped silently.
 
 use aqelith::ir::lower_source;
 use aqelith::serve::{start, ServeError};
@@ -44,7 +44,7 @@ fn get(path: &'static str) -> fn(u16) -> Vec<u8> {
         "/docs?x=1" => {
             |p| format!("GET /docs?x=1 HTTP/1.1\r\nHost: 127.0.0.1:{p}\r\n\r\n").into_bytes()
         }
-        _ => |p| format!("GET /missing HTTP/1.1\r\nHost: 127.0.0.1:{p}\r\n\r\n").into_bytes(),
+        other => panic!("the test asks for an unknown path: {other}"),
     }
 }
 
@@ -139,25 +139,67 @@ fn the_server_answers_after_a_refused_request() {
     assert_eq!(body, "ok");
 }
 
-#[test]
-#[ignore = "C1 not met: the accepted corpus has no zero-argument pure function to run; see docs/platforms/SERVER_CONFORMANCE.md"]
-fn the_language_corpus_runs_on_the_server_target_where_it_can() {
-    // C1 (partial): zero-argument pure functions of the accepted corpus run and return a value.
-    // Corpus files with parameters or effects are skipped and counted as such, not as passes.
-    let dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/corpus/accept");
-    let (mut ran, mut skipped) = (0, 0);
-    for entry in std::fs::read_dir(dir).unwrap() {
-        let src = std::fs::read_to_string(entry.unwrap().path()).unwrap();
-        let p = lower_source(&src).unwrap();
-        for f in &p.funcs {
-            if f.params.is_empty() && f.uses.is_empty() {
-                aqelith::interp::run(&p, &f.name, &[]).expect("runs");
-                ran += 1;
-            } else {
-                skipped += 1;
-            }
+/// Canonical text of a run-time value, for comparison with the expected file:
+/// integers and booleans as is, strings quoted, records as `Name { field: value, ... }`, unit as `unit`.
+fn show(p: &aqelith::ir::Program, v: &aqelith::interp::Val) -> String {
+    use aqelith::interp::Val;
+    match v {
+        Val::Int(i) => i.to_string(),
+        Val::Bool(b) => b.to_string(),
+        Val::Str(s) => format!("\"{s}\""),
+        Val::Unit => "unit".to_string(),
+        Val::Rec { ty, fields } => {
+            let decl = &p.records[*ty as usize];
+            let parts: Vec<String> = decl
+                .fields
+                .iter()
+                .zip(fields.iter())
+                .map(|((name, _), v)| format!("{name}: {}", show(p, v)))
+                .collect();
+            format!("{} {{ {} }}", decl.name, parts.join(", "))
         }
     }
-    eprintln!("conformance corpus=C1-partial ran={ran} skipped={skipped}");
-    assert!(ran > 0);
+}
+
+#[test]
+fn the_language_corpus_runs_on_the_server_target() {
+    // C1: every corpus file in tests/corpus/server has an .expected file with one line per
+    // zero-argument function, in source order. The expected values were derived by hand from the
+    // language semantics, not by running the compiler; a mismatch fails the test.
+    let dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/corpus/server");
+    let mut files: Vec<_> = std::fs::read_dir(&dir)
+        .unwrap()
+        .map(|e| e.unwrap().path())
+        .filter(|p| p.extension().is_some_and(|x| x == "aq"))
+        .collect();
+    files.sort();
+    assert!(!files.is_empty(), "no server corpus files");
+    let mut ran = 0;
+    for path in files {
+        let src = std::fs::read_to_string(&path).unwrap();
+        let expected = std::fs::read_to_string(path.with_extension("expected")).unwrap();
+        let p = lower_source(&src).unwrap_or_else(|e| panic!("{}: {e:?}", path.display()));
+        let mut got = Vec::new();
+        // Every function is listed, so none is dropped silently: a function with parameters is
+        // listed as needing arguments, and one with a declared effect as refused.
+        for f in &p.funcs {
+            if !f.params.is_empty() {
+                got.push(format!("{} = needs {} argument(s)", f.name, f.params.len()));
+                continue;
+            }
+            match aqelith::interp::run(&p, &f.name, &[]) {
+                Ok(v) => {
+                    got.push(format!("{} = {}", f.name, show(&p, &v)));
+                    ran += 1;
+                }
+                Err(aqelith::interp::RunError::EffectNotAvailable { effect, .. }) => {
+                    got.push(format!("{} = refused: effect {effect}", f.name));
+                }
+                Err(e) => panic!("{}: {}: {e:?}", path.display(), f.name),
+            }
+        }
+        let want: Vec<&str> = expected.lines().collect();
+        assert_eq!(got, want, "{}", path.display());
+    }
+    eprintln!("conformance corpus=C1 ran={ran}");
 }

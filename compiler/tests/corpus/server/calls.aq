@@ -1,0 +1,15 @@
+module calls
+
+fn base() -> i32 {
+    40
+}
+
+fn answer() -> i32 {
+    base() + 2
+}
+
+fn nothing() -> unit {
+}
+
+fn log_line() -> unit uses io {
+}

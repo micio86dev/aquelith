@@ -1,0 +1,3 @@
+greeting = "hello"
+same = true
+differ = false

@@ -1,0 +1,17 @@
+module records
+
+record Request {
+    path: str,
+}
+
+record Response {
+    body: str,
+}
+
+fn sample() -> Response {
+    Response { body: "ok" }
+}
+
+fn path_of() -> str {
+    Request { path: "/x" }.path
+}

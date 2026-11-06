@@ -1,0 +1,13 @@
+module text
+
+fn greeting() -> str {
+    "hello"
+}
+
+fn same() -> bool {
+    "a" == "a"
+}
+
+fn differ() -> bool {
+    "a" == "b"
+}

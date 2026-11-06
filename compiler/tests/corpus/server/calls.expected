@@ -1,0 +1,4 @@
+base = 40
+answer = 42
+nothing = unit
+log_line = refused: effect io

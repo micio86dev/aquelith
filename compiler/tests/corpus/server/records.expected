@@ -1,0 +1,2 @@
+sample = Response { body: "ok" }
+path_of = "/x"
