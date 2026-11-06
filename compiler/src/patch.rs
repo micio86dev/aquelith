@@ -5,14 +5,15 @@
 //! Only a candidate that the checker accepts and that re-formats to itself is returned.
 //! Nothing is written here; the CLI writes the candidate atomically when the patch is not a dry run.
 //!
-//! Limits of this slice: targets are function names, not persistent ids (ADR-0004 is not
-//! implemented in the compiler). Implemented ops: rename, set-return, add-effect, remove-effect,
+//! Targets are function names, or `id:<hex>` when an id index is given (ids.rs; function level only,
+//! node-level ids are not built). Implemented ops: rename, set-return, add-effect, remove-effect,
 //! delete, replace and insert (function level). set-field and statement-level edits are not implemented.
 
 use std::path::Path;
 
 use crate::ast::*;
 use crate::diag::{jstr, Diagnostic};
+use crate::ids::IdIndex;
 use crate::json::{self, Json};
 use crate::{check_source, format, format_source, parser};
 
@@ -43,6 +44,18 @@ pub enum Op {
 }
 
 impl Op {
+    fn target_mut(&mut self) -> &mut String {
+        match self {
+            Op::Rename { target, .. }
+            | Op::SetReturn { target, .. }
+            | Op::AddEffect { target, .. }
+            | Op::RemoveEffect { target, .. }
+            | Op::Delete { target, .. }
+            | Op::Replace { target, .. }
+            | Op::Insert { target, .. } => target,
+        }
+    }
+
     fn target(&self) -> &str {
         match self {
             Op::Rename { target, .. }
@@ -57,7 +70,7 @@ impl Op {
 }
 
 /// Content hash of one function: the graph hash of its canonical text on its own.
-/// Used as the precondition of delete and replace (ADR-0004 gives the intent; the compiler has no ids yet).
+/// Used as the precondition of delete and replace; persistent ids (ids.rs) name the function.
 pub fn fn_hash(f: &FnDef) -> String {
     graph_hash(&format::format_module(&Module { name: String::new(), items: vec![f.clone()] }))
 }
@@ -92,6 +105,8 @@ pub struct Accepted {
     pub base: String,
     pub new_base: String,
     pub touched: Vec<String>,
+    /// Renames in the order they were applied, as (old, new). An id index follows them to keep ids.
+    pub renames: Vec<(String, String)>,
 }
 
 /// Boxed so that `Result` stays small; a rejection is built once per request.
@@ -206,9 +221,17 @@ fn parse_op(i: usize, j: &Json) -> Result<Op, Fail> {
 }
 
 /// Apply a patch to source text and return the verified candidate, or the first rejection.
+/// Targets are function names; `id:` targets need an index (see `apply_indexed`).
 pub fn apply(src: &str, patch_text: &str) -> Result<Accepted, Fail> {
+    apply_indexed(src, patch_text, None)
+}
+
+/// As `apply`, with an optional id index. A target `id:<hex>` is resolved to its current name once,
+/// before the first op runs, so every op of one patch sees the names the patch was written against.
+pub fn apply_indexed(src: &str, patch_text: &str, index: Option<&IdIndex>) -> Result<Accepted, Fail> {
     let doc = json::parse(patch_text).map_err(|e| malformed(None, format!("invalid JSON: {e}")))?;
-    let (base, ops) = parse_ops(&doc)?;
+    let (base, mut ops) = parse_ops(&doc)?;
+    resolve_ids(&mut ops, index)?;
 
     let module = parser::parse(src).map_err(|d| {
         let mut r = reject("PAT006", "source", format!("the source does not parse: {}", d.message));
@@ -253,7 +276,31 @@ pub fn apply(src: &str, patch_text: &str) -> Result<Accepted, Fail> {
             touched.push(name);
         }
     }
-    Ok(Accepted { text: candidate.clone(), base, new_base: graph_hash(&candidate), touched })
+    let renames: Vec<(String, String)> = ops
+        .iter()
+        .filter_map(|op| match op {
+            Op::Rename { target, to, .. } => Some((target.clone(), to.clone())),
+            _ => None,
+        })
+        .collect();
+    Ok(Accepted { text: candidate.clone(), base, new_base: graph_hash(&candidate), touched, renames })
+}
+
+fn resolve_ids(ops: &mut [Op], index: Option<&IdIndex>) -> Result<(), Fail> {
+    for (i, op) in ops.iter_mut().enumerate() {
+        let id = op.target_mut().strip_prefix("id:").map(str::to_string);
+        let Some(id) = id else { continue };
+        let Some(index) = index else {
+            return Err(malformed(Some(i), "id targets need an id index"));
+        };
+        let Some(name) = index.name_of(&id) else {
+            let mut r = reject("PAT004", "target", format!("no function with id '{id}'"));
+            r.op = Some(i);
+            return Err(r);
+        };
+        *op.target_mut() = name.to_string();
+    }
+    Ok(())
 }
 
 fn apply_op(m: &mut Module, op: &Op) -> Result<(), Fail> {

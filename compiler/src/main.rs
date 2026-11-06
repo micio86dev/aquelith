@@ -2,6 +2,7 @@
 
 use std::process::ExitCode;
 
+use aqelith::ids::{self, IdIndex};
 use aqelith::{check_source, diag, parser, patch, query};
 
 const USAGE: &str = "usage:
@@ -9,6 +10,7 @@ const USAGE: &str = "usage:
   aqelith fmt <file> [--write]
   aqelith query <file> <function>
   aqelith patch <file> <patch.json> [--dry-run]
+  aqelith ids <file> [--write]
   aqelith explain <CODE>";
 
 fn main() -> ExitCode {
@@ -22,6 +24,7 @@ fn main() -> ExitCode {
         ["fmt", file] => fmt(file, write),
         ["query", file, name] => query_cmd(file, name),
         ["patch", file, doc] => patch_cmd(file, doc, flags.contains(&"--dry-run")),
+        ["ids", file] => ids_cmd(file, write),
         ["explain", code] => explain(code),
         _ => {
             eprintln!("{USAGE}");
@@ -121,6 +124,34 @@ fn explain(code: &str) -> ExitCode {
     }
 }
 
+/// Sidecar index next to the source: `<file>.ids.json`.
+fn index_path(file: &str) -> String {
+    format!("{file}.ids.json")
+}
+
+/// A fresh id. The generator is infallible in practice; an error would exit with code 2.
+fn fresh_id() -> String {
+    ids::random_id().unwrap_or_else(|e| {
+        eprintln!("cannot generate an id: {e}");
+        std::process::exit(2)
+    })
+}
+
+/// Loads the index file, or an empty index when there is none. Exits with code 2 on a bad file.
+fn load_index(file: &str) -> IdIndex {
+    match std::fs::read_to_string(index_path(file)) {
+        Ok(text) => IdIndex::from_json(&text).unwrap_or_else(|e| {
+            eprintln!("{}: {e}", index_path(file));
+            std::process::exit(2)
+        }),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => IdIndex::default(),
+        Err(e) => {
+            eprintln!("{}: {e}", index_path(file));
+            std::process::exit(2)
+        }
+    }
+}
+
 fn patch_cmd(file: &str, doc: &str, dry_run: bool) -> ExitCode {
     let src = match load(file) {
         Ok(s) => s,
@@ -133,20 +164,61 @@ fn patch_cmd(file: &str, doc: &str, dry_run: bool) -> ExitCode {
             return ExitCode::from(2);
         }
     };
-    match patch::apply(&src, &patch_text) {
+    let mut index = load_index(file);
+    // The index follows the source as it is now, in case the file was edited outside the index.
+    if let Ok(module) = parser::parse(&src) {
+        index.sync(&module, &mut fresh_id);
+    }
+    match patch::apply_indexed(&src, &patch_text, Some(&index)) {
         Err(rejection) => {
             println!("{}", rejection.to_json());
             ExitCode::from(1)
         }
         Ok(accepted) => {
             println!("{}", accepted.to_json(dry_run));
-            if !dry_run {
-                if let Err(e) = patch::write_atomic(std::path::Path::new(file), &accepted.text) {
-                    eprintln!("{file}: {e}");
-                    return ExitCode::from(2);
-                }
+            if dry_run {
+                return ExitCode::SUCCESS;
+            }
+            if let Err(e) = patch::write_atomic(std::path::Path::new(file), &accepted.text) {
+                eprintln!("{file}: {e}");
+                return ExitCode::from(2);
+            }
+            for (old, new) in &accepted.renames {
+                index.rename(old, new);
+            }
+            // The candidate was checked, so it parses; sync keeps ids of survivors and drops the rest.
+            if let Ok(module) = parser::parse(&accepted.text) {
+                index.sync(&module, &mut fresh_id);
+            }
+            if let Err(e) = patch::write_atomic(std::path::Path::new(&index_path(file)), &index.to_json()) {
+                eprintln!("{}: {e}", index_path(file));
+                return ExitCode::from(2);
             }
             ExitCode::SUCCESS
         }
     }
+}
+
+fn ids_cmd(file: &str, write: bool) -> ExitCode {
+    let src = match load(file) {
+        Ok(s) => s,
+        Err(code) => return code,
+    };
+    let module = match parser::parse(&src) {
+        Ok(m) => m,
+        Err(d) => {
+            eprintln!("{file}:{}:{}: {}: {}", d.line, d.column, d.code, d.message);
+            return ExitCode::from(1);
+        }
+    };
+    let mut index = load_index(file);
+    index.sync(&module, &mut fresh_id);
+    print!("{}", index.to_json());
+    if write {
+        if let Err(e) = patch::write_atomic(std::path::Path::new(&index_path(file)), &index.to_json()) {
+            eprintln!("{}: {e}", index_path(file));
+            return ExitCode::from(2);
+        }
+    }
+    ExitCode::SUCCESS
 }

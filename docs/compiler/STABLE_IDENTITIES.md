@@ -1,6 +1,6 @@
 # AQELITH Stable Identities
 
-Status: **Proposed (M2).** Decision: [../adr/ADR-0004-stable-identities.md](../adr/ADR-0004-stable-identities.md). Prototype P1 tests the rename and position cases.
+Status: **Partly implemented (M5 slice).** Functions only: `compiler/src/ids.rs`, index `<file>.ids.json` (`aqelith.ids.v1`), ids from the standard library's randomly seeded hasher (128 bits, portable, an identity and not a security token), kept by rename and same-name replace, never reused. Not built: node-level ids, move, merge tooling (§6), a deterministic allocation mode for agents. Original status: **Proposed (M2).** Decision: [../adr/ADR-0004-stable-identities.md](../adr/ADR-0004-stable-identities.md). Prototype P1 tests the rename and position cases.
 
 ## 1. Requirements (directive §10.2)
 
