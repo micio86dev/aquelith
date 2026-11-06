@@ -34,3 +34,7 @@ Option 2: keep AQELITH as the working name, keep all assets private, and run the
 - No domain purchase or reservation.
 - No trademark claim: no (R) or TM symbol, no "registered"/"cleared" wording, no filing.
 - No statement that the name is "available" or "cleared" in any document.
+
+## Owner decision recorded 2026-11-06
+
+The owner decided to keep the name AQELITH. This is a decision to keep the internal codename, not an approval for public use. Status stays PENDING UNTIL: manual trademark searches in EUIPO, WIPO, USPTO and UIBM are done and reviewed, and the owner explicitly approves public use. No public repository, package, release or domain purchase is allowed before that.

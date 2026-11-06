@@ -27,3 +27,4 @@ Objective: build the M4 foundation (v0 compiler subset), then M5 to M8 as far as
 - L1 (2026-11-05, verbatim): "Procedi, scegli tu. Ti ho detto di non fermarti mai finché non completi tutto"
 - L2: Owner delegated the open questions Q6, Q7, Q10 and Q23. Decided in ADR-0009, ADR-0010, ADR-0011, recorded as accepted for v0.
 - L3: Honest scope: M6 and M9 not completed; M5 and M7 partial. The owner's instruction "never stop" is met for everything that can be completed without a new decision or an external gate; M6 needs a renderer design choice that changes the view-tree format, and M9 needs the brand approval.
+- L4 (2026-11-06, verbatim): "Mantienes aquelith". Name kept as internal codename. Brand gate remains open for public use; recorded in docs/branding/BRAND_DECISION.md.
