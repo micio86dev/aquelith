@@ -4,7 +4,7 @@ Status: **Proposed (M2).** Nothing here is implemented. Syntax shown is illustra
 
 ## 1. Purpose
 
-A single programming model for frontend, backend, full-stack, real-time, desktop, mobile, edge and embedded targets. The language core does not depend on any operating system, renderer or browser API. Platform features enter only through declared capabilities and target interfaces (see [../platforms/PLATFORM_ABSTRACTION.md](../platforms/PLATFORM_ABSTRACTION.md)).
+A single programming model for frontend, backend, full-stack, real-time, desktop, mobile, edge and embedded targets. This is the goal, not the current state: only the web target for static pages is built today, and no other target is supported. The status of each target is recorded in [../platforms/TARGET_MATRIX.md](../platforms/TARGET_MATRIX.md). The language core does not depend on any operating system, renderer or browser API. Platform features enter only through declared capabilities and target interfaces (see [../platforms/PLATFORM_ABSTRACTION.md](../platforms/PLATFORM_ABSTRACTION.md)).
 
 ## 2. Design rules (from the master directive)
 
