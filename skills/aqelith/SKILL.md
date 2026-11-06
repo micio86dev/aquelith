@@ -5,7 +5,7 @@ description: Work with AQELITH v0 source files using the aqelith CLI: check, for
 
 # AQELITH v0 (agent reference)
 
-Status: **v0 subset.** Only what is listed here works. Anything else is a compile error, not a silent fallback. Source of truth: `compiler/`. This file is checked by `compiler/tests/skill.rs` against the real diagnostic codes.
+Status: **v0 subset.** Only what is listed here works. Anything else is a compile error, not a silent fallback. Source of truth: `compiler/`. The patch slice implements only the four ops listed below. This file is checked by `compiler/tests/skill.rs` against the real diagnostic codes.
 
 ## Commands
 
@@ -15,6 +15,7 @@ Status: **v0 subset.** Only what is listed here works. Anything else is a compil
 | `aqelith fmt <file>` | Print canonical text | Stdout. Syntax only; ill-typed programs format too |
 | `aqelith fmt <file> --write` | Rewrite the file in canonical form | Exit 0 on success |
 | `aqelith query <file> <function>` | Callers and callees of one function | One JSON object: name, params, return, uses, calls, called_by |
+| `aqelith patch <file> <patch.json> [--dry-run]` | Apply a semantic patch with preconditions (see below) | One JSON object: `accepted`, `dry-run` or `rejected` |
 | `aqelith explain <CODE>` | Meaning of a stable diagnostic code | One line |
 
 Exit codes: `0` success; `1` diagnostics or function not found; `2` usage or I/O error.
@@ -39,6 +40,27 @@ Stable codes. Read the meaning with `aqelith explain`; do not parse message text
 - TYP001, TYP002, TYP003, TYP004: types (mismatch, literal range, arity, unknown type).
 - RES001: unknown name or function.
 - DUP001: duplicate function name.
+- PAT001, PAT002, PAT003, PAT004, PAT005, PAT006: patch rejections (malformed document, stale base, failed precondition, unknown target, candidate fails the checker, source does not parse).
+
+## Semantic patches (aqelith.patch.v1)
+
+A patch is a JSON document. The compiler decides whether it applies; a rejected patch never changes the file.
+
+```json
+{"api":"aqelith.patch.v1","base":"graph:<hash>","ops":[
+  {"op":"rename","target":"add1","expect":{"name":"add1"},"to":"inc"},
+  {"op":"set-return","target":"main","expect":{"ret":"i32"},"to":"bool"},
+  {"op":"add-effect","target":"main","expect":{"uses":["io"]},"to":"net"},
+  {"op":"remove-effect","target":"main","expect":{"uses":["io","net"]},"to":"net"}
+]}
+```
+
+- `base` is the graph hash from the current file. Read it from a rejection's `expected` field, or compute it by re-querying. It is computed over the canonical form, so spacing does not change it.
+- `target` is a function name. Each `expect` must hold for the current program at the moment that op runs; ops run in order.
+- `rename` also updates every call to that function. `add-effect` and `remove-effect` take effect names from the fixed core set.
+- Ops are all-or-none. The candidate must pass the full checker and re-format to itself, or nothing is written.
+- Use `--dry-run` first. Exit codes: `0` accepted or dry-run, `1` rejected, `2` usage or I/O error.
+- Not implemented: `replace`, `insert`, `delete`, `set-field`, persistent ids. A target that is not a function name is rejected as PAT004.
 
 ## Workflow for an agent
 
@@ -49,4 +71,4 @@ Stable codes. Read the meaning with `aqelith explain`; do not parse message text
 
 ## Not available in v0 (do not promise)
 
-Patch API, JSON-RPC daemon, MCP server, web runtime, native backends, package manager, capabilities at run time. These are planned in `docs/`.
+JSON-RPC daemon, MCP server, web runtime, native backends, package manager, capabilities at run time. These are planned in `docs/`.

@@ -9,7 +9,7 @@ Last updated: 2026-11-06
 | M2 Architecture synthesis | Complete as proposals: language, security, compiler, platform, performance, testing and application specs; 8 ADRs; risk register; 23 open questions. See docs/reports/M2_ARCHITECTURE_REPORT.md |
 | M3 Feasibility prototypes | Complete with 2 prototypes built (stable identities and patches; capability values) and 6 candidates deferred with reasons. See docs/reports/M3_FEASIBILITY_REPORT.md |
 | M4 Language and compiler foundation | Done for the v0 subset (lexer, parser, checker, formatter, CLI, 15 tests). Full grammar still open. See docs/reports/M4_M8_REPORT.md |
-| M5 Semantic graph and agent interface | Partial: query and JSON diagnostics. Patch API over the IR not built |
+| M5 Semantic graph and agent interface | Partial: query, JSON diagnostics, and a patch slice (`aqelith patch`, v1: rename, set-return, add-effect, remove-effect; base hash, preconditions, full-checker validation, atomic write, dry run; 16 tests). Not built: replace/insert/delete, persistent ids in the compiler, deterministic repair |
 | M6 Web application runtime | Partial: first vertical slice (counter) with semantic renderer, declarative events, per-cell repaint, 10 render tests, 3 runtime tests that execute the browser script against a DOM stub (`node --test web/tests/`), manual Chrome check. Forms, routing, data, SSR of app state, accessibility checks and browser tests in CI not built |
 | M7 Testing, security, performance | Partial: corpus, property and mutation tests. No fuzzing in CI, no sanitizers, no benchmarks |
 | M8 Agent ecosystem | Partial: skill for the v0 CLI with a drift test. No MCP server |

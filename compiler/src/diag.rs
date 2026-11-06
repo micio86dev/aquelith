@@ -16,6 +16,12 @@ pub const CODES: &[(&str, &str)] = &[
     ("RES001", "A name (variable or function) is not defined."),
     ("EFF001", "A call requires an effect that the caller does not declare in uses."),
     ("DUP001", "A function name is defined more than once."),
+    ("PAT001", "The patch document is malformed: bad JSON, unknown api or op, or a bad value."),
+    ("PAT002", "The patch base is not the current graph hash, so the patch is stale. Re-query and resubmit."),
+    ("PAT003", "A precondition in the patch does not hold for the current program. Expected and actual are given."),
+    ("PAT004", "The patch names a function that does not exist."),
+    ("PAT005", "The patched program does not pass the full checker. The diagnostics refer to the candidate text."),
+    ("PAT006", "The source does not parse, so it cannot be patched."),
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq)]

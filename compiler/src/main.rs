@@ -2,12 +2,13 @@
 
 use std::process::ExitCode;
 
-use aqelith::{check_source, diag, parser, query};
+use aqelith::{check_source, diag, parser, patch, query};
 
 const USAGE: &str = "usage:
   aqelith check <file> [--json]
   aqelith fmt <file> [--write]
   aqelith query <file> <function>
+  aqelith patch <file> <patch.json> [--dry-run]
   aqelith explain <CODE>";
 
 fn main() -> ExitCode {
@@ -20,6 +21,7 @@ fn main() -> ExitCode {
         ["check", file] => check(file, json),
         ["fmt", file] => fmt(file, write),
         ["query", file, name] => query_cmd(file, name),
+        ["patch", file, doc] => patch_cmd(file, doc, flags.contains(&"--dry-run")),
         ["explain", code] => explain(code),
         _ => {
             eprintln!("{USAGE}");
@@ -115,6 +117,36 @@ fn explain(code: &str) -> ExitCode {
         None => {
             eprintln!("unknown code '{code}'");
             ExitCode::from(1)
+        }
+    }
+}
+
+fn patch_cmd(file: &str, doc: &str, dry_run: bool) -> ExitCode {
+    let src = match load(file) {
+        Ok(s) => s,
+        Err(code) => return code,
+    };
+    let patch_text = match std::fs::read_to_string(doc) {
+        Ok(t) => t,
+        Err(e) => {
+            eprintln!("{doc}: {e}");
+            return ExitCode::from(2);
+        }
+    };
+    match patch::apply(&src, &patch_text) {
+        Err(rejection) => {
+            println!("{}", rejection.to_json());
+            ExitCode::from(1)
+        }
+        Ok(accepted) => {
+            println!("{}", accepted.to_json(dry_run));
+            if !dry_run {
+                if let Err(e) = patch::write_atomic(std::path::Path::new(file), &accepted.text) {
+                    eprintln!("{file}: {e}");
+                    return ExitCode::from(2);
+                }
+            }
+            ExitCode::SUCCESS
         }
     }
 }

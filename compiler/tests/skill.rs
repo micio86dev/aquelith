@@ -21,7 +21,7 @@ fn skill_names_every_diagnostic_code() {
 #[test]
 fn skill_names_every_command() {
     let text = skill_text();
-    for cmd in ["aqelith check", "aqelith fmt", "aqelith query", "aqelith explain"] {
+    for cmd in ["aqelith check", "aqelith fmt", "aqelith query", "aqelith patch", "aqelith explain"] {
         assert!(text.contains(cmd), "SKILL.md does not mention `{cmd}`");
     }
 }
