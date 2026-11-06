@@ -1,0 +1,34 @@
+Objective: let an agent write a landing page in a `.aq` file, checked by the compiler, rendered by a web backend. Branch: docs/m0-m1-research (local, no push). Delivery: local commits on this branch, as the owner asked on 2026-11-06 (L7); push and pull requests stay with the owner. Test runner: `cargo test` in compiler/ and web/, `cargo clippy --all-targets -- -D warnings`, `node --test web/tests/browser/landing.mjs`.
+
+## Specs
+S1. The core language stays target-neutral: the compiler crate contains no HTML, no tags and no scripts. Owner (Italian, verbatim): "l'importante che il linguaggio e sistema resti universale". English: the important thing is that the language and system stay universal.
+S2. String literals: `"..."`, printable ASCII, no `"` or `\` inside, no newline, no control characters, no byte above 0x7e. Rejected with LEX004 (unterminated) and LEX005 (character not allowed).
+S3. Page item: `page <name> "<route>" { ... }` with statements `title`, `h1`, `h2`, `p`, `link "<label>" "<route>"`. Closed set.
+S4. Page checks: title present and exactly once; text non-empty; route is `/` or a clean path; route unique; each link names a route of the module. Codes: PAGE001 to PAGE005 (assigned in diag.rs and enforced in pages.rs).
+S5. The formatter prints pages canonically (idempotent).
+S6. The web backend renders a parsed page tree to the same kind of HTML as the existing renderer; text is escaped.
+S7. A landing page example in `.aq` builds through the web backend and passes the browser test.
+S8. Documents describe only what is implemented: ADR-0015, GRAMMAR.md, SKILL.md, PROJECT_STATUS.md.
+S9. Styles (owner: "Ok vai", English: "OK, go ahead"; the choice of stylesheet was made by the assistant, owner's delegation "scegli tu", English: "you choose"): one stylesheet, written by the author, linked in the head of every page of the site. It is a web-backend asset, not language syntax, so the core stays target-neutral (S1). Acceptance: every page links `/style.css`; the file answers 200 as `text/css`; text, headings and links are unchanged. Not in scope: images, lists, visual review.
+
+## Tasks
+T1. [done] S2 lexer strings and LEX004/LEX005. Commit fa1fa77. RED: compiler/tests/pages.rs; GREEN: 14 tests. Non-ASCII fix (review finding): RED test `non_ascii_inside_a_string_is_lex005`, then lexer changed to reject bytes >= 0x7f.
+T2. [done] S3 parser and neutral AST page item (compiler/src/parser.rs, ast.rs). Commit fa1fa77.
+T3. [done] S4 checker rules (compiler/src/pages.rs; fixtures in tests/corpus). Commit fa1fa77.
+T4. [done] S5 formatter for pages; functions first, then pages. Commit fa1fa77.
+T5. [done] S6 web/src/source.rs (site_from_source), tests in web/tests/source.rs. Commit 12a2964.
+T6. [done] S7 web/examples/landing/landing.aq, build_site example, web/tests/browser/landing.mjs (Chrome, all routes and links). Commit 12a2964.
+T7. [done] S8 ADR-0015, GRAMMAR.md, SKILL.md, PROJECT_STATUS.md; skill drift test passes. Commit fa1fa77 (compiler and docs unit); PROJECT_STATUS and the guide in the docs commit.
+T8. [done] S9 web/src/source.rs site_from_source_with_style; RED: web/tests/source.rs (compile failure, then 2 tests); GREEN: web source tests 6/6; build_site takes an optional style.css; landing style.css; browser test checks stylesheet 200 and text/css. Route: inline (small, one understood change). Risk: none (no compiler change, no public API break; new function only). Commit 12a2964.
+T9. [done] Agent connection guide, speed protocol, speed results (docs/guides/CONNECT_CODING_AGENTS.md, docs/testing/LANDING_SPEED_PROTOCOL.md, docs/reports/LANDING_SPEED_RESULTS.md). Commit: the docs commit made after this file was written. A file cannot hold its own commit hash, so the hash is given in the reply to the owner and visible in `git log`.
+
+## Log
+L1. Owner request (2026-11-06), excerpt in Italian: "Sì, non stare a impazzire troppo per il nome ... lascia quel nome lì ... Adesso è un esperimento in locale. Devo poter sviluppare applicazioni con questo nuovo linguaggio di programmazione ... Faremo degli esperimenti, i test li farai tu ... dovrò farlo io manualmente ... per me non è completato il lavoro." English: "Yes, do not worry too much about the name ... keep that name ... It is a local experiment now. I must be able to develop applications with this new programming language ... We will run experiments, you do the tests ... I will have to do it by hand ... for me the work is not complete." Owner then chose "A": extend the language with strings and a page construct.
+L2. Owner correction (Italian, verbatim): "L' importante che il linguaggio e sistema resti universale." English: the important thing is that the language and system stay universal. Applied as S1: pages are neutral in the core; HTML lives in web/.
+L3. Decision recorded in docs/adr/ADR-0015-string-literals-and-page-items.md.
+L4. Owner (Italian, excerpt): the language must be one for mobile and desktop, designed for agents; the compiler targets HTML/CSS/JS for the web first. English: one language for mobile and desktop, made for agents; the compiler targets the web first. Recorded as direction; no claim of speed or universality without measurements (AGENTS.md).
+L5. Verification 2026-11-06 (before commit): compiler suites green, clippy clean; web green, clippy clean; node landing test green. Not committed at the time.
+L6. Owner: "Ok vai" (English: OK, go ahead), after the speed protocol. Done as S9/T8: stylesheet as a backend asset, not language syntax, to keep S1. Verification: web `cargo test` green, `cargo clippy --all-targets -D warnings` clean, `node --test web/tests/browser/landing.mjs` pass (4.8 s). Not verified: the visual result in a browser; the style is checked only as linked and served as text/css.
+L7. Owner (Italian, verbatim): "Risolvi tutto, committa in locale, confronta tu la velocità di sviluppo con qualche test." English: solve everything, commit locally, compare development speed yourself with a few tests. Also asked: "Rif braccio B?" (which reference for arm B?). Decided by the assistant: plain HTML5 and one CSS file, see docs/reports/LANDING_SPEED_RESULTS.md.
+L8. Pre-commit review (gga) blocked the first compiler commit on four documentation findings and one code finding (non-ASCII inside strings). Fixed: lexer rejects bytes >= 0x7f in strings (test first); DUP001 text covers pages; SKILL.md names `page` items; ADR-0015 no longer says `str` type. Then the web commit and the docs commit: guide limits updated to the page items and build_site; task document reconciled (this file).
+L9. Speed runs (agents, not the owner): arm A 17 s and 18 s, arm B 19 s and 12 s, both arms passing the browser check against the spec. Ranges overlap: no measurable difference at this sample size (protocol section 7). Owner's manual arm not run. Details in docs/reports/LANDING_SPEED_RESULTS.md.

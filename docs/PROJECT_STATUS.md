@@ -21,3 +21,7 @@ Last updated: 2026-11-06
 ## Rejected / Deferred
 - Deferred: parser comparison, IR benchmarks, incremental compilation, web rendering prototype, serialization prototype, runtime capability enforcement (reasons in M3 report).
 - Rejected as design: see docs/strategy/REJECTED_IDEAS.md.
+
+## Local experiment: landing page slice (ADR-0015)
+
+Done and tested locally: string literals, `page` items with a closed statement set, neutral page checks (PAGE001 to PAGE005, LEX004, LEX005), canonical formatting of pages, function patches that keep pages, a static web backend in `web/` (`site_from_source`), an example landing site in `web/examples/landing/landing.aq`, and a headless Chrome test that checks every route and link. Styles: one stylesheet per site, linked from every page (`build_site <file.aq> <out> <style.css>`); it is a backend asset, not language syntax. Speed comparison: two fresh agent runs per arm were done (docs/reports/LANDING_SPEED_RESULTS.md); no measurable difference at this sample size. Not done: the owner's manual arm and a third run per arm, a second backend (mobile, desktop), escapes, string values in functions, images and lists.
