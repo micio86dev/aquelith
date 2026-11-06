@@ -94,6 +94,11 @@ Check, then build. Run the commands from the directories shown (the build comman
 cd "<repo>/web" && cargo run -q --example build_site -- /absolute/path/notes.aq /absolute/path/out
 ```
 
+Notes for a first run:
+
+- `cargo run` in `web/` writes its build files to `web/target/`. That folder is git-ignored (`target/` in `.gitignore`), so the repository stays clean.
+- The check above uses the release binary from section 1. A debug build (`compiler/target/debug/aqelith`, made by `cargo build --bins` without `--release`) behaves the same; use whichever you built.
+
 Live preview with reload on each save (work item `web-dev-loop` in `odd/tasks/`; checked in real Chrome on 2026-11-06, and covered by the server and client tests in `web/tests/dev_server.rs` and `web/tests/reload.test.mjs`):
 
 ```sh
