@@ -1,4 +1,5 @@
-//! MCP server over stdio (M8): JSON-RPC 2.0, one message per line, protocol 2024-11-05.
+//! MCP server (M8): JSON-RPC 2.0, protocol 2024-11-05. Over stdio (one message per line) or, on
+//! loopback only, over HTTP (`serve_http`).
 //!
 //! Every tool works on source text passed as an argument. None of them reads or writes a file,
 //! so an agent cannot change the disk through this server. A patch is returned as a candidate
@@ -143,8 +144,13 @@ pub fn serve_http(listener: &std::net::TcpListener, max_requests: Option<usize>)
     Ok(())
 }
 
+/// Limits that keep one slow or hostile local client from holding the server.
+const READ_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(5);
+const MAX_HEADER_LINES: usize = 64;
+
 fn handle_connection(stream: &mut std::net::TcpStream) -> std::io::Result<()> {
     use std::io::{BufRead, BufReader, Read, Write};
+    stream.set_read_timeout(Some(READ_TIMEOUT))?;
     let mut reader = BufReader::new(stream.try_clone()?);
     let mut request_line = String::new();
     reader.read_line(&mut request_line)?;
@@ -153,7 +159,7 @@ fn handle_connection(stream: &mut std::net::TcpStream) -> std::io::Result<()> {
 
     let mut host: Option<String> = None;
     let mut length: Option<usize> = None;
-    loop {
+    for _ in 0..MAX_HEADER_LINES {
         let mut line = String::new();
         if reader.read_line(&mut line)? == 0 || line == "\r\n" || line == "\n" {
             break;
