@@ -16,10 +16,10 @@ Objective: build the M4 foundation (v0 compiler subset), then M5 to M8 as far as
 - T2 (S2) golden and corpus tests, robustness tests — inline — done
 - T3 (S2) mutation checks on the effect checker and formatter — inline — done
 - T4 (S3) patch API over the IR — slice v1 done (rename, set-return, add-effect, remove-effect; 16 tests, mutation checks on the checker and base guards). Gaps: replace/insert/delete, persistent ids, repair (see docs/compiler/SEMANTIC_PATCH_API.md §8)
-- T5 (S5) fuzzing in CI and sanitizers — not started — needs CI and a runtime
-- T6 (S4) web runtime — not started — needs renderer design decision
+- T5 (S5) fuzzing — partial — deterministic fuzz tests done (L6); coverage-guided fuzzing in CI and sanitizers open
+- T6 (S4) web runtime — partial — counter and one controlled integer input (ADR-0012, ADR-0013); routing, submit, SSR and accessibility checks open
 - T7 (S6) skill file for v0 CLI with a drift test — inline — done
-- T8 (S6) MCP server — not started — the CLI contract is only v0 and no MCP server has been written
+- T8 (S6) MCP server — done — aqelith-mcp over stdio, text-only tools, 11 tests (L8)
 - T9 (S7) brand gate — blocked, owner decision
 - T10 (S2) M4–M8 report — inline — done, see docs/reports/M4_M8_REPORT.md
 
