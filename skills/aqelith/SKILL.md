@@ -66,7 +66,7 @@ A patch is a JSON document. The compiler decides whether it applies; a rejected 
 - Ops are all-or-none. The candidate must pass the full checker and re-format to itself, or nothing is written.
 - Use `--dry-run` first. Exit codes: `0` accepted or dry-run, `1` rejected, `2` usage or I/O error.
 - `delete` removes a function when `expect.hash` matches it. `replace` swaps a function for the one in `with` when `expect.hash` matches. `insert` places the function in `with` right after `target`. `with` must hold exactly one function definition. The hash is the graph hash of that function's canonical text; read it from a PAT003 rejection or from a re-query.
-- Target by persistent id with `"target":"id:<32 hex digits>"`. The id index is `<file>.ids.json`, kept by `aqelith patch`; a rename keeps the id, a deleted function's id is never reused. Id targets are not available through the MCP server (no file access).
+- Target by persistent id with `"target":"id:<32 hex digits>"`. The id index is `<file>.ids.json`, kept by `aqelith patch`; a rename keeps the id, a deleted function's id is not reused in practice (128-bit random ids). Id targets are not available through the MCP server (no file access).
 - Not implemented: `set-field`. A target that is not a function name is rejected as PAT004.
 
 ## MCP server

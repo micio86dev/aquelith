@@ -1,10 +1,10 @@
 //! Persistent ids for functions (ADR-0004, docs/compiler/STABLE_IDENTITIES.md §2–§4).
 //!
 //! Slice: functions only. An id is opaque, random (128 bits from the standard library's randomly
-//! seeded hasher, so no platform device is needed), assigned once and never reused. An id is an
+//! seeded hasher, so no platform device is needed), assigned once and not reused in practice (128-bit random space; no explicit check). An id is an
 //! identity, not a security token (STABLE_IDENTITIES §7). It is stored in a sidecar index `<file>.ids.json`, because the
 //! source language has no comments (ADR-0010) and must not carry metadata. A rename keeps the id;
-//! a function that disappears loses its entry and its id is never handed out again.
+//! a function that disappears loses its entry; its id is not reused in practice (no explicit check).
 //! Not built: moves between modules, ids for nodes below function level, merge tooling (§6).
 
 use crate::ast::Module;
@@ -19,9 +19,8 @@ pub struct IdIndex {
     entries: Vec<(String, String)>,
 }
 
-/// 128 bits as 32 lowercase hex digits. Each `RandomState` takes its keys from the process's
-/// randomly seeded state, so two calls differ and an outside party cannot predict the next id.
-/// Portable (no platform device). Not a cryptographic key generator.
+/// 128 bits as 32 lowercase hex digits from randomly seeded hashers. Portable (no platform device).
+/// Not a cryptographic key generator: the standard library does not promise unpredictable output.
 pub fn random_id() -> std::io::Result<String> {
     use std::collections::hash_map::RandomState;
     use std::hash::{BuildHasher, Hasher};

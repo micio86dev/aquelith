@@ -1,6 +1,6 @@
 # AQELITH Stable Identities
 
-Status: **Partly implemented (M5 slice).** Functions only: `compiler/src/ids.rs`, index `<file>.ids.json` (`aqelith.ids.v1`), ids from the standard library's randomly seeded hasher (128 bits, portable, an identity and not a security token), kept by rename and same-name replace, never reused. Not built: node-level ids, move, merge tooling (§6), a deterministic allocation mode for agents. Original status: **Proposed (M2).** Decision: [../adr/ADR-0004-stable-identities.md](../adr/ADR-0004-stable-identities.md). Prototype P1 tests the rename and position cases.
+Status: **Partly implemented (M5 slice).** Functions only: `compiler/src/ids.rs`, index `<file>.ids.json` (`aqelith.ids.v1`), ids from the standard library's randomly seeded hasher (128 bits, portable, an identity and not a security token), kept by rename and same-name replace, not reused in practice. Not built: node-level ids, move, merge tooling (§6), a deterministic allocation mode for agents. Original status: **Proposed (M2).** Decision: [../adr/ADR-0004-stable-identities.md](../adr/ADR-0004-stable-identities.md). Prototype P1 tests the rename and position cases.
 
 ## 1. Requirements (directive §10.2)
 
@@ -18,15 +18,15 @@ Conflating these causes stale-edit bugs. Zerolang derives node ids from tree pos
 ## 3. Allocation
 
 - Persistent ids come from a per-project id space recorded in the project file. Two agents creating nodes concurrently must not collide: each agent gets its own id range, or ids are random 128-bit values. Choice is open; ADR-0004 proposes random 128-bit ids with a deterministic test mode.
-- Ids are never reused after deletion.
+- Ids are not reused after deletion in practice (128-bit random space). No explicit check enforces it.
 
 ## 4. Rename and move
 
-Rename changes the name attribute; the persistent id is unchanged. Move changes the containing module; the id is unchanged. Prototype P1 demonstrates the first case with tests.
+Rename changes the name attribute; the persistent id is unchanged (implemented for functions). Planned, not built: a move changes the containing module and the id is unchanged. Prototype P1 demonstrates the rename case with tests.
 
 ## 5. Formatting and comments
 
-Formatting does not change ids or content hashes of semantic nodes; it changes only the text projection. Comments are attached to nodes and keep the node's id.
+Formatting does not change ids or content hashes of semantic nodes; it changes only the text projection. Planned, not built: comments attached to nodes. The v0 language has no comments (ADR-0010).
 
 ## 6. Branches
 
