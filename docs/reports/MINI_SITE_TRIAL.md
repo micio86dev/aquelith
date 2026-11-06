@@ -81,6 +81,18 @@ What the numbers support, and what they do not:
 - **Output sizes differ in the stylesheet, not in the HTML.** The AQELITH build minifies its CSS, so its stylesheet is about a quarter of the plain one. The HTML is larger on the AQELITH side because of the CSP meta element (about 130 bytes per page).
 - Totals are not a speed claim. Three runs per arm is a small sample.
 
+## Three sessions with the MCP route
+
+The `CLAUDE.md` now names the MCP tools for validation and formatting, and forbids the binary for validation. Same spec and harness.
+
+| Run | Wall time (ms) | Tool calls | MCP calls | Binary via Bash | Terms (of 10) | Broken links | HTML gzip | CSS gzip |
+|---|---|---|---|---|---|---|---|---|
+| 1 | 37366 | 9 | 2 | 0 | 10 | 0 | 1390 | 186 |
+| 2 | 37194 | 10 | 2 | 0 | 10 | 0 | 1390 | 141 |
+| 3 | 32607 | 9 | 2 | 0 | 10 | 0 | 1390 | 157 |
+
+The change worked: each run called `aqelith_check` and `aqelith_format` through MCP, and none used the binary. Median wall time is 37.2 s, against 31.6 s for the binary route and 40.9 s for plain HTML. The ranges overlap across all three arms, so again: no measurable difference at this sample size.
+
 ## Next step
 
 Repeat the MCP route: a run whose `CLAUDE.md` tells the agent to call the `aqelith_check` tool, to see whether it uses the server rather than the binary. Then decide whether the gap in authoring time is larger than the spread between runs, with more runs.
