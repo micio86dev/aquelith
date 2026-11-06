@@ -1,0 +1,9 @@
+module m
+
+page a "/" {
+    title "x";
+}
+
+page b "/" {
+    title "y";
+}

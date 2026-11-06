@@ -2,12 +2,34 @@
 
 use crate::ast::*;
 
+/// Canonical order: the module header, then functions, then pages (ADR-0015).
 pub fn format_module(m: &Module) -> String {
     let mut out = format!("module {}\n", m.name);
     for f in &m.items {
         out.push('\n');
         out.push_str(&format_fn(f));
     }
+    for p in &m.pages {
+        out.push('\n');
+        out.push_str(&format_page(p));
+    }
+    out
+}
+
+fn format_page(p: &Page) -> String {
+    let mut out = format!("page {} \"{}\" {{\n", p.name, p.route.value);
+    for item in &p.items {
+        let line = match item {
+            PageItem::Title(t) => format!("title \"{}\";", t.value),
+            PageItem::Heading { level, text } => format!("h{level} \"{}\";", text.value),
+            PageItem::Para(t) => format!("p \"{}\";", t.value),
+            PageItem::Link { label, href } => format!("link \"{}\" \"{}\";", label.value, href.value),
+        };
+        out.push_str("    ");
+        out.push_str(&line);
+        out.push('\n');
+    }
+    out.push_str("}\n");
     out
 }
 

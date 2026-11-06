@@ -76,7 +76,7 @@ impl Op {
 /// Content hash of one function: the graph hash of its canonical text on its own.
 /// Used as the precondition of delete and replace; persistent ids (ids.rs) name the function.
 pub fn fn_hash(f: &FnDef) -> String {
-    graph_hash(&format::format_module(&Module { name: String::new(), items: vec![f.clone()] }))
+    graph_hash(&format::format_module(&Module { name: String::new(), items: vec![f.clone()], pages: Vec::new() }))
 }
 
 /// Parses the text of one function definition for `with`. Anything but exactly one function is malformed.

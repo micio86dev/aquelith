@@ -6,6 +6,8 @@ use crate::diag::Diagnostic;
 pub enum Tok {
     Ident(String),
     Int(String),
+    /// String literal; the value excludes the quotes (ADR-0015).
+    Str(String),
     Sym(&'static str),
 }
 
@@ -57,6 +59,24 @@ pub fn lex(src: &str) -> Result<Vec<Token>, Diagnostic> {
                 i += 1;
             }
             out.push(Token { tok: Tok::Int(src[start..i].to_string()), start, end: i });
+        } else if c == b'"' {
+            i += 1;
+            let body = i;
+            loop {
+                if i >= bytes.len() || bytes[i] == b'\n' || bytes[i] == b'\r' {
+                    return Err(Diagnostic::new(src, "LEX004", "unterminated string literal", start, i));
+                }
+                if bytes[i] == b'"' {
+                    break;
+                }
+                if bytes[i] == b'\\' || bytes[i] < 0x20 || bytes[i] >= 0x7f {
+                    return Err(Diagnostic::new(src, "LEX005", "character not allowed in a string literal", i, i + 1));
+                }
+                i += 1;
+            }
+            let value = src[body..i].to_string();
+            i += 1;
+            out.push(Token { tok: Tok::Str(value), start, end: i });
         } else if src[i..].starts_with("->") {
             i += 2;
             out.push(Token { tok: Tok::Sym("->"), start, end: i });

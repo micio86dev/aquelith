@@ -8,7 +8,7 @@ use crate::lexer::{lex, Tok, Token};
 /// Maximum nesting of blocks, parentheses, calls and expression trees.
 pub const MAX_DEPTH: usize = 128;
 
-const RESERVED: &[&str] = &["module", "fn", "let", "mut", "uses", "true", "false"];
+const RESERVED: &[&str] = &["module", "fn", "page", "let", "mut", "uses", "true", "false"];
 
 pub fn parse(src: &str) -> Result<Module, Diagnostic> {
     let toks = lex(src)?;
@@ -98,10 +98,62 @@ impl<'a> Parser<'a> {
         self.expect_kw("module")?;
         let (name, _, _) = self.ident()?;
         let mut items = Vec::new();
+        let mut pages = Vec::new();
         while self.pos < self.toks.len() {
-            items.push(self.fn_def()?);
+            if self.is_kw("page") {
+                pages.push(self.page_def()?);
+            } else {
+                items.push(self.fn_def()?);
+            }
         }
-        Ok(Module { name, items })
+        Ok(Module { name, items, pages })
+    }
+
+    /// A string literal where the grammar requires one.
+    fn text(&mut self) -> Result<Text, Diagnostic> {
+        if let Some(Tok::Str(value)) = self.peek() {
+            let value = value.clone();
+            let t = self.toks[self.pos].clone();
+            self.pos += 1;
+            return Ok(Text { value, start: t.start, end: t.end });
+        }
+        Err(self.err("PAR001", "expected a string literal"))
+    }
+
+    /// `page <name> "<route>" { <statement>; ... }` (ADR-0015).
+    fn page_def(&mut self) -> Result<Page, Diagnostic> {
+        self.expect_kw("page")?;
+        let (name, name_start, name_end) = self.ident()?;
+        let route = self.text()?;
+        self.expect_sym("{")?;
+        let mut items = Vec::new();
+        while !self.is_sym("}") {
+            let (kw, ks, ke) = match self.peek() {
+                Some(Tok::Ident(kw)) => {
+                    let kw = kw.clone();
+                    let t = self.toks[self.pos].clone();
+                    self.pos += 1;
+                    (kw, t.start, t.end)
+                }
+                _ => return Err(self.err("PAR001", "expected a page statement or '}'")),
+            };
+            let item = match kw.as_str() {
+                "title" => PageItem::Title(self.text()?),
+                "h1" => PageItem::Heading { level: 1, text: self.text()? },
+                "h2" => PageItem::Heading { level: 2, text: self.text()? },
+                "p" => PageItem::Para(self.text()?),
+                "link" => {
+                    let label = self.text()?;
+                    let href = self.text()?;
+                    PageItem::Link { label, href }
+                }
+                _ => return Err(Diagnostic::new(self.src, "PAR001", format!("unknown page statement '{kw}'"), ks, ke)),
+            };
+            self.expect_sym(";")?;
+            items.push(item);
+        }
+        self.expect_sym("}")?;
+        Ok(Page { name, name_start, name_end, route, items })
     }
 
     fn fn_def(&mut self) -> Result<FnDef, Diagnostic> {

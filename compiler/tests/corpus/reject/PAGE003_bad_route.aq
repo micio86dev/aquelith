@@ -1,0 +1,5 @@
+module m
+
+page a "docs" {
+    title "x";
+}

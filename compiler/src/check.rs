@@ -33,6 +33,7 @@ pub fn check_module(src: &str, m: &Module) -> Vec<Diagnostic> {
             diags.push(d);
         }
     }
+    diags.extend(crate::pages::check_pages(src, &m.pages));
     diags
 }
 

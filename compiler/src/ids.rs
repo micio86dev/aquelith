@@ -125,7 +125,7 @@ mod tests {
     fn json_round_trips() {
         let mut next = counter();
         let mut index = IdIndex::default();
-        let m = Module { name: "m".into(), items: vec![] };
+        let m = Module { name: "m".into(), items: vec![], pages: vec![] };
         index.sync(&m, &mut next);
         assert_eq!(IdIndex::from_json(&index.to_json()).unwrap(), index);
     }

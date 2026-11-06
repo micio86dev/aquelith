@@ -25,24 +25,26 @@ Exit codes: `0` success; `1` diagnostics or function not found; `2` usage or I/O
 
 ## Language rules that matter
 
-- The file starts with `module <name>`. Only `fn` items follow.
+- The file starts with `module <name>`. Then `fn` and `page` items follow.
 - Types: `i32`, `u32`, `bool`, `unit`. Integer literals take their type from context; with none they are `i32`.
 - Effects: a fixed core set (`io fs net time rand env proc concurrency ui unsafe`). A function that calls an effectful function must declare that effect in `uses`. A function with no `uses` is pure.
 - The last expression of a block (without `;`) is its value. There is no `return`.
 - `==` does not chain: write `(a == b) == c`.
 - No comments (`//` is LEX003). Put documentation in `docs/`.
-- No closures, strings, assignment, `?`, imports, generics or traits in v0.
+- String literals (`"..."`, printable ASCII, no `"` or `\`) appear only in page items. No string values in functions, no closures, assignment, `?`, imports, generics or traits.
+- Page items (ADR-0015): `page <name> "<route>" { ... }` with exactly these statements, each ending in `;`: `title "..."` (once), `h1 "..."`, `h2 "..."`, `p "..."`, `link "label" "/route"`. A route is `/` or a lowercase path without trailing slash. Pages are content only; they carry no markup, and a backend renders them. The formatter prints functions first, then pages.
 
 ## Diagnostic codes
 
 Stable codes. Read the meaning with `aqelith explain`; do not parse message text.
 
-- LEX001, LEX002, LEX003: lexical errors (non-ASCII, unexpected character, comment).
+- LEX001, LEX002, LEX003, LEX004, LEX005: lexical errors (non-ASCII, unexpected character, comment, unterminated string; backslash, control character or non-ASCII byte in a string).
 - PAR001, PAR002, PAR005: syntax (unexpected token, nesting too deep, chained comparison).
 - EFF001, EFF002: effects (undeclared effect in a call, unknown effect name).
 - TYP001, TYP002, TYP003, TYP004: types (mismatch, literal range, arity, unknown type).
 - RES001: unknown name or function.
-- DUP001: duplicate function name.
+- DUP001: duplicate function or page name.
+- PAGE001, PAGE002, PAGE003, PAGE004, PAGE005: pages (title missing or repeated, empty text, invalid route or link target, duplicate route, link to a missing route).
 - PAT001, PAT002, PAT003, PAT004, PAT005, PAT006: patch rejections (malformed document, stale base, failed precondition, unknown target, candidate fails the checker, source does not parse).
 
 ## Semantic patches (aqelith.patch.v1)
@@ -85,4 +87,4 @@ A patch is a JSON document. The compiler decides whether it applies; a rejected 
 
 ## Not available in v0 (do not promise)
 
-JSON-RPC daemon, web runtime, native backends, package manager, capabilities at run time. These are planned in `docs/`.
+JSON-RPC daemon, native backends, package manager, capabilities at run time. The web backend renders pages from `web/` only; mobile and desktop backends are planned in `docs/`.

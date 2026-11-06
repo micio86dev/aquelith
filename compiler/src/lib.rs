@@ -8,6 +8,7 @@ pub mod ids;
 pub mod json;
 pub mod lexer;
 pub mod mcp;
+pub mod pages;
 pub mod parser;
 pub mod patch;
 pub mod query;

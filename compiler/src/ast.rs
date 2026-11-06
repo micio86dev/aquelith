@@ -113,4 +113,33 @@ pub struct FnDef {
 pub struct Module {
     pub name: String,
     pub items: Vec<FnDef>,
+    pub pages: Vec<Page>,
+}
+
+/// A string literal and its span. `value` excludes the quotes; the span includes them.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Text {
+    pub value: String,
+    pub start: usize,
+    pub end: usize,
+}
+
+/// One content statement of a page (ADR-0015). The set is closed. Target-neutral: no markup here.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PageItem {
+    Title(Text),
+    /// Level 1 or 2.
+    Heading { level: u8, text: Text },
+    Para(Text),
+    Link { label: Text, href: Text },
+}
+
+/// A page: a name, a route path and content statements in source order.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Page {
+    pub name: String,
+    pub name_start: usize,
+    pub name_end: usize,
+    pub route: Text,
+    pub items: Vec<PageItem>,
 }

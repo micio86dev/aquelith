@@ -2,7 +2,7 @@
 
 Status: **v0 subset implemented** in `compiler/src/parser.rs` (tests: `compiler/tests/corpus.rs`, `compiler/tests/robust.rs`). The rest of this draft is still Proposed. The v0 choices are recorded in [../adr/ADR-0009-v0-syntax-subset.md](../adr/ADR-0009-v0-syntax-subset.md) and [../adr/ADR-0010-comments-and-formatting.md](../adr/ADR-0010-comments-and-formatting.md).
 
-What v0 implements: `module` header, `fn` items with typed parameters, optional `-> type`, optional `uses` list from the fixed effect set, blocks with `let` (with optional `mut` and type), expression statements, a tail expression, integer and boolean literals, names, calls, parentheses, and `+ - * ==` with the precedence stated in ADR-0009. Not in v0: comments, closures, string literals, `return`, assignment, `?`, multi-module imports, generics, traits.
+What v0 implements: `module` header, `fn` items with typed parameters, optional `-> type`, optional `uses` list from the fixed effect set, blocks with `let` (with optional `mut` and type), expression statements, a tail expression, integer and boolean literals, names, calls, parentheses, and `+ - * ==` with the precedence stated in ADR-0009. Added by ADR-0015: string literals (only inside page items) and `page` items with the closed statement set `title`, `h1`, `h2`, `p`, `link`. Not in v0: comments, closures, string values in functions, `return`, assignment, `?`, multi-module imports, generics, traits.
 
 ## 1. Requirements the grammar must meet
 
