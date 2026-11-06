@@ -47,6 +47,35 @@ pub fn site_from_source_with_style(
         .collect())
 }
 
+/// Content-Security-Policy of a static site (S4). A static page runs no script and loads only its
+/// own stylesheet and images, so every other source is `none`. Written as a meta element because
+/// static hosts cannot set headers. `frame-ancestors` is not honoured in a meta element, so the
+/// dev server sends it as a header instead.
+pub const STATIC_CSP: &str =
+    "default-src 'none'; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'";
+
+/// The static build: the pages with their stylesheet link, the CSP meta element, and minified
+/// HTML (S2, S4). The stylesheet itself is minified by the caller, which copies the file.
+pub fn static_site(src: &str, style_href: Option<&str>) -> Result<Vec<(String, String)>, SourceError> {
+    let files = match style_href {
+        Some(href) => site_from_source_with_style(src, href)?,
+        None => site_from_source(src)?,
+    };
+    // STATIC_CSP holds no double quote or ampersand, so it needs no escaping inside the
+    // double-quoted attribute; single quotes stay literal (a `&#39;` each would cost 4 bytes).
+    debug_assert!(!STATIC_CSP.contains(['"', '&', '<']));
+    let csp = format!(
+        "<meta http-equiv=\"Content-Security-Policy\" content=\"{STATIC_CSP}\">\n</head>"
+    );
+    Ok(files
+        .into_iter()
+        .map(|(path, html)| {
+            let with_csp = html.replacen("</head>", &csp, 1);
+            (path, crate::minify::minify_html(&with_csp))
+        })
+        .collect())
+}
+
 fn to_page(p: &SourcePage) -> Page {
     let title = p
         .items

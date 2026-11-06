@@ -5,8 +5,10 @@
 
 use std::collections::BTreeMap;
 
+pub mod minify;
 pub mod source;
-pub use source::{site_from_source, site_from_source_with_style, SourceError};
+pub use minify::{minify_css, minify_html};
+pub use source::{site_from_source, site_from_source_with_style, static_site, SourceError, STATIC_CSP};
 
 /// Element tags the renderer accepts. Anything else is a build error.
 pub const ALLOWED_TAGS: &[&str] = &[
