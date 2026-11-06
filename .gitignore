@@ -1,1 +1,6 @@
 target/
+
+# cargo-fuzz output (M7)
+fuzz/corpus/
+fuzz/artifacts/
+fuzz/target/

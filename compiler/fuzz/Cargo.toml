@@ -1,0 +1,30 @@
+[package]
+name = "aqelith-fuzz"
+version = "0.0.0"
+edition = "2021"
+publish = false
+description = "Coverage-guided fuzz targets for the AQELITH compiler (M7). Run with cargo-fuzz on nightly."
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+aqelith = { path = ".." }
+
+[[bin]]
+name = "front_end"
+path = "fuzz_targets/front_end.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "patch_apply"
+path = "fuzz_targets/patch_apply.rs"
+test = false
+doc = false
+bench = false
+
+[workspace]
+members = ["."]
