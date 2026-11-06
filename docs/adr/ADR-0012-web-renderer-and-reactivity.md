@@ -13,7 +13,7 @@ M6 needs a view-tree format, a renderer, reactivity and event handling. ADR-0006
 2. **Server output is plain semantic HTML.** Static HTML stays visible; nothing is hidden with CSS.
 3. **State** is a set of named integer cells in this slice. Only declared cells exist. State is serialized as JSON with `<`, `>`, `&`, U+2028 and U+2029 escaped, so it cannot close its script element (the Naze audit's escaping bug).
 4. **Events** are declarative operations, not code. Each button gets a handler id (`h1`, `h2`, ...) assigned in document order. The page carries a table `id -> operation` as JSON. The only v0 operation is `add {cell, delta}`. No code is shipped to the browser for events and no `eval` is used.
-5. **Reactivity** in this slice repaints every `Bind` node after each event (`paint()` in the runtime). Per-cell repainting is the intended next step, not implemented. No virtual DOM.
+5. **Reactivity** is per-cell: an operation reports the cell it changed, and only the `Bind` nodes displaying that cell are repainted. No virtual DOM.
 6. **Client runtime** is one external script file (no inline script, so a Content-Security-Policy can forbid inline code). It applies operations and updates bound text.
 
 ## Alternatives considered
@@ -32,4 +32,4 @@ M6 needs a view-tree format, a renderer, reactivity and event handling. ADR-0006
 Evidence for this slice:
 - Automated: `web/tests/render.rs` (10 tests) checks the rendered HTML as strings: escaping, script-element breakout, allowlisted tags, accessible button names, unknown cells, and that only the external runtime is loaded as code. No automated test executes the JavaScript runtime.
 - Manual, not automated: on 2026-11-06 the counter was served locally and clicked in Chrome; the value went 0 to 1 to 2 to 1 with both buttons. The embedded state JSON stayed at its initial value, as designed.
-- Not done: a browser test in CI, the accessibility checks, and the deployment-skew experiment.
+- Not done: a browser test in CI, the accessibility checks, and the deployment-skew experiment. The per-cell repaint was checked in Chrome manually; no automated test covers it.

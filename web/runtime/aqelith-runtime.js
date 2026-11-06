@@ -6,20 +6,24 @@
   const state = JSON.parse(document.getElementById("aq-state").textContent);
   const handlers = JSON.parse(document.getElementById("aq-handlers").textContent);
 
-  function paint() {
+  // Repaint only the bindings that display `cell`; with no argument, repaint all.
+  function paint(cell) {
     for (const el of document.querySelectorAll("[data-bind]")) {
       const name = el.getAttribute("data-bind");
+      if (cell !== undefined && name !== cell) continue;
       if (Object.prototype.hasOwnProperty.call(state, name)) {
         el.textContent = String(state[name]);
       }
     }
   }
 
+  // Applies the operation and returns the changed cell, or null if nothing changed.
   function apply(op) {
-    if (op.op !== "add") return;
-    if (!Object.prototype.hasOwnProperty.call(state, op.cell)) return;
-    if (!Number.isSafeInteger(op.delta)) return;
+    if (op.op !== "add") return null;
+    if (!Object.prototype.hasOwnProperty.call(state, op.cell)) return null;
+    if (!Number.isSafeInteger(op.delta)) return null;
     state[op.cell] = state[op.cell] + op.delta;
+    return op.cell;
   }
 
   document.addEventListener("click", function (event) {
@@ -29,8 +33,8 @@
       ? handlers[button.getAttribute("data-handler")]
       : null;
     if (!op) return;
-    apply(op);
-    paint();
+    const changed = apply(op);
+    if (changed !== null) paint(changed);
   });
 
   paint();
