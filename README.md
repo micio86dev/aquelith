@@ -139,3 +139,7 @@ The landing browser test needs Google Chrome: `node --test tests/browser/landing
 ## Contributing
 
 The engineering contract is [AGENTS.md](AGENTS.md). Use conventional commits, run `gga run` before a change is complete, and do not claim speed or safety without a reproducible measurement.
+
+## License
+
+Apache License 2.0. See [LICENSE](LICENSE).

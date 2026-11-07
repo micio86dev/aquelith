@@ -5,6 +5,7 @@ edition = "2021"
 rust-version = "1.82"
 publish = false
 description = "AQELITH compiler foundation v0 (M4): lexer, parser, checker, formatter, query. Not a release."
+license = "Apache-2.0"
 
 [lib]
 path = "src/lib.rs"
