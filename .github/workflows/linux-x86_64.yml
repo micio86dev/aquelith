@@ -5,7 +5,7 @@ name: linux-x86_64
 
 on:
   push:
-    branches: [feat/web-dev-loop, docs/m0-m1-research]
+    branches: [main]
   pull_request:
   workflow_dispatch:
 

@@ -10,3 +10,6 @@ web/examples/landing/site/
 # Local Engram memory config (tool state, not project content)
 .engram/
 desktop/macos/aqhost
+
+# gentle-ai local runtime state: skill registry index and cache (regenerate with `gentle-ai skill-registry refresh`)
+.atl/
