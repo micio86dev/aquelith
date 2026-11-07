@@ -1,0 +1,10 @@
+# Android toolchain versions in use. Each line is read from the installed package's source.properties
+# (or from the emulator's own version output). Update this file whenever a package is installed or upgraded.
+# Installed under: /Volumes/Scheda SSD/aqelith-lab/android-sdk (outside the repository).
+platform-tools        37.0.1      (platform-tools/source.properties, Pkg.Revision)
+emulator              37.3.8      (emulator/source.properties, Pkg.Revision; `emulator -version`: 37.3.8.0, build_id 16847572, arm64)
+platforms;android-35  rev 2       (platforms/android-35/source.properties, Pkg.Revision)
+build-tools;35.0.1    35.0.1      (build-tools/35.0.1/source.properties)
+system-image arm64-v8a android-35 google_apis rev 9 (system-images/.../source.properties, Pkg.Revision)
+java                  26.0.1      (`java -version`; the Android Gradle Plugin may require JDK 17 or 21, to be checked in A1)
+host                  macOS arm64 (Apple M1), `uname -m` arm64
