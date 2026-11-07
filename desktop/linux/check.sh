@@ -41,4 +41,13 @@ if [ "$first" != "$(printf 'text\tHow it works\tnot-focusable')" ]; then
 fi
 echo "ok: click opens the page for 'How it works'"
 
+# Keyboard: a real Tab key event (xdotool, under Xvfb) moves focus from the first link to the second.
+focus=$(run "timeout 60 xvfb-run -a sh -c 'python3 /app/aqhost.py /data/landing.json --focus-test & sleep 1.5; xdotool windowfocus \$(xdotool search --name AQELITH | head -1) 2>/dev/null; xdotool key Tab; wait'")
+before=$(printf '%s\n' "$focus" | awk -F'\t' '$1=="focus-before"{print $2}')
+after=$(printf '%s\n' "$focus" | awk -F'\t' '$1=="focus-after"{print $2}')
+if [ "$before" != "link:How it works" ] || [ "$after" != "link:Get started" ]; then
+  echo "FAIL: keyboard focus was '$before' then '$after'"; exit 1
+fi
+echo "ok: Tab moves keyboard focus from 'How it works' to 'Get started'"
+
 echo "Linux desktop host checks passed (arm64 Linux container under Docker; not a native Linux desktop)"

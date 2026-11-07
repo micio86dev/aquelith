@@ -9,6 +9,7 @@ usage: aqhost.py <view.json> [--route /path] [--width N] [--snapshot out.png] [-
   --snapshot saves the window as a PNG and exits (needs an X display, e.g. under xvfb-run).
   --ax-dump prints one line per control: role, label, focusable. Needs no display.
   --click LABEL activates that link, then prints the accessibility lines of the page it opens.
+  --focus-test prints the keyboard focus before and after a Tab sent by xdotool (see check.sh).
 """
 import json
 import subprocess
@@ -81,6 +82,14 @@ class Host:
         if target is not None:
             self.show(target)
 
+    def focused_label(self):
+        widget = self.window.get_focus()
+        if widget is None:
+            return "none"
+        if isinstance(widget, Gtk.LinkButton):
+            return f"link:{widget.get_label()}"
+        return widget.__class__.__name__
+
     def click(self, label):
         """Activates the link with this label, as a pointer click would (same handler)."""
         for child in self.box.get_children():
@@ -108,6 +117,7 @@ def main(argv):
     width = 640
     ax_dump = False
     click = None
+    focus_test = False
     i = 2
     while i < len(argv):
         if argv[i] == "--route" and i + 1 < len(argv):
@@ -125,6 +135,9 @@ def main(argv):
         elif argv[i] == "--ax-dump":
             ax_dump = True
             i += 1
+        elif argv[i] == "--focus-test":
+            focus_test = True
+            i += 1
         elif argv[i] == "--click" and i + 1 < len(argv):
             click = argv[i + 1]
             i += 2
@@ -136,6 +149,14 @@ def main(argv):
     if start is None:
         print("aqhost: no page for the requested route", file=sys.stderr)
         return 1
+    if focus_test:
+        host = Host(pages, start, width)
+        host.window.show_all()
+        # Two observations: before and after the test sends a Tab key with xdotool (see check.sh).
+        GLib.timeout_add(1000, lambda: print(f"focus-before\t{host.focused_label()}", flush=True) and False)
+        GLib.timeout_add(2800, lambda: (print(f"focus-after\t{host.focused_label()}", flush=True), Gtk.main_quit()) and False)
+        Gtk.main()
+        return 0
     if click is not None:
         host = Host(pages, start, width)
         if not host.click(click):
