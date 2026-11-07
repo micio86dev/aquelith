@@ -11,7 +11,7 @@ Status: **Proposed.** Each target below starts only when its feature document is
 | Server, Linux x86_64 | Minimal. The compiler suite (`cargo test -q`) passed natively on x86_64 Linux in GitHub Actions run 42358884309 (`ubuntu-latest`). Earlier 5 of 5 was under emulation and is not counted as native | [SERVER_CONFORMANCE.md](SERVER_CONFORMANCE.md), `.github/workflows/linux-x86_64.yml` |
 | Desktop, macOS arm64 | Started: static view, route switch and link click (target-action) checked; a real OS pointer click not verified; D2 partly done. See [DESKTOP_MACOS.md](DESKTOP_MACOS.md) | `desktop/macos/check.sh` |
 | Desktop, Linux | Started: GTK host draws the pages and navigates by link, in a container; a real pointer click and a native Linux desktop are not verified. See [DESKTOP_LINUX.md](DESKTOP_LINUX.md) | `desktop/linux/check.sh` |
-| Desktop, Windows | Proposed, blocked: needs a Windows machine (or a Wine run, which is not Windows) | [DESKTOP_WINDOWS.md](DESKTOP_WINDOWS.md) |
+| Desktop, Windows | Compiler suite passes natively on Windows x64 (GitHub Actions run 42365115292). The desktop host is not started. No local Windows machine needed. Wine is not used | [DESKTOP_WINDOWS.md](DESKTOP_WINDOWS.md) |
 | Mobile, Android | Proposed, first mobile target (owner decision, 2026-11-07). No backend yet. Blocked: the SDK download needs the owner's OK and disk space is low | [MOBILE_ANDROID.md](MOBILE_ANDROID.md) |
 | Mobile, iOS | Proposed, second mobile target (after Android). Blocked: full Xcode not installed (disk space) | [MOBILE_IOS.md](MOBILE_IOS.md) |
 | Embedded and constrained | No backend | none |
