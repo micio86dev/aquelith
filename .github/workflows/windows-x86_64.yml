@@ -1,0 +1,30 @@
+name: windows-x86_64
+
+# Native x86_64 Windows run of the compiler suite (roadmap: Desktop, Windows). The runner is GitHub's
+# windows-latest, a real Windows host, so this needs no local disk and no Windows machine.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compiler:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assert the host is x86_64 Windows
+        shell: pwsh
+        run: |
+          if ($env:RUNNER_OS -ne "Windows") { throw "not Windows: $env:RUNNER_OS" }
+          if ($env:RUNNER_ARCH -ne "X64") { throw "not x64: $env:RUNNER_ARCH" }
+          "host: $env:RUNNER_OS $env:RUNNER_ARCH"
+      - name: Test the compiler
+        shell: pwsh
+        working-directory: compiler
+        run: cargo test -q
