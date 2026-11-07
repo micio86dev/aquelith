@@ -24,7 +24,8 @@ Status: **written for the minimal host (S3).** Covers `compiler/src/serve.rs` an
 | T1 | Remote access to the host | Bind to 127.0.0.1 only | `serve.rs` `start` (no other bind path) |
 | T2 | DNS rebinding from a browser | Host must be `127.0.0.1:<port>` or `localhost:<port>`; else 403 before the handler runs | `foreign_host_names_are_refused_before_the_handler_runs`, conformance I2 |
 | T3 | Oversized request head to exhaust memory | At most 8 KiB, else 431 | `an_oversized_head_is_refused_and_the_server_keeps_serving` |
-| T4 | Slow client holding the single connection | 5 s deadline for the whole head, per-read timeout | Covered by code (`read_head`); no automated test yet |
+| T4 | Slow client holding a connection | 5 s deadline for the whole head, per-read timeout; one thread per connection | `a_slow_client_does_not_block_another_client` (a second client is served while the first stalls) |
+| T13 | Connection exhaustion | At most 32 connections at once; the 33rd gets `503` at once | `connections_past_the_cap_get_503_at_once` |
 | T5 | Method other than GET used to change state | Only GET is served; others 405. The handler has no way to write files or sockets | `only_get_is_served` |
 | T6 | Handler with effects reaching the network from inside the language | `net` and `io` are refused by the interpreter; a handler that declares an effect is not started | `a_handler_that_declares_an_effect_is_not_started`, `EffectNotAvailable` tests |
 | T7 | Handler that runs forever or uses exponential work | Step budget of 1,000,000 instructions and depth limit 256 | `exponential_work_at_low_depth_stops_at_the_step_budget` |
@@ -37,12 +38,12 @@ Status: **written for the minimal host (S3).** Covers `compiler/src/serve.rs` an
 ## Residual risks (accepted, documented)
 
 - **No TLS, no authentication.** Acceptable only because the socket is loopback-only. Exposing it needs a new threat model.
-- **One connection at a time.** A slow but valid client delays others for up to 5 seconds per request (T4).
+- **Connection cap.** A client can hold all 32 slots with idle connections for up to 5 seconds each; a new client then gets `503` until a slot frees (T13).
 - **The handler is trusted code.** A malicious handler author has the same power as the program author; the language limits (no file or network effects) bound what it can do, not what it can compute within the budget.
 - **The step budget is a constant, not a measured limit.** It bounds work; it does not promise a time.
 - **Not audited by a third party.** This document is the author's analysis.
 
 ## Not yet done
 
-- Automated tests for T4 and T8.
+- Automated test for T8 (a panic in one request).
 - An audit list of denials (the conformance report lists it as missing).

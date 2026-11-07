@@ -21,7 +21,7 @@ The program provides one function: `fn handle(req: Request) -> Response`, with n
 | Host header | Must be `127.0.0.1:<port>` or `localhost:<port>`, otherwise `403`, before the handler runs. | Blocks DNS rebinding from a browser. |
 | Methods | `GET` only; other methods `405`. | The handler has no request body to read. |
 | Head size and time | At most 8 KiB and 5 seconds, otherwise `431` or `408`. | Bounds memory and a slow client's hold on the server. |
-| Concurrency | One connection at a time. | Simple and bounded; no shared state. |
+| Concurrency | One thread per connection, at most 32 at once; the 33rd gets `503` at once. The program is shared read-only. | A slow client holds only its own thread, for at most the 5 s head deadline. Tests: `a_slow_client_does_not_block_another_client`, `connections_past_the_cap_get_503_at_once`. |
 | Faults | A panic while serving one request drops that connection; the accept loop keeps running. A run that exceeds the step budget answers `500`. | One bad request must not stop the server. |
 | Response headers | `Content-Security-Policy: default-src 'none'`, `X-Content-Type-Options: nosniff`, `Cache-Control: no-store`. | Text responses cannot run or embed anything. |
 
@@ -30,5 +30,5 @@ The program provides one function: `fn handle(req: Request) -> Response`, with n
 - The handler cannot read a request body, headers or the method: they are not passed in.
 - A handler that fails at run time would answer `500` with no detail. The v0 subset has no run-time error for a `str` handler, so this branch is not reachable yet; it is kept as the defensive answer for later slices. A handler that exceeds the step budget also gets `500`, but that path is not yet tested end to end.
 - A handler that declares an effect (for example `uses net`) is refused at start, not at the first request.
-- No TLS, no keep-alive, no compression. Loopback only.
-- No performance claim: one connection at a time is a correctness choice, not a measured limit ([../performance/BASELINE.md](../performance/BASELINE.md)).
+- No TLS, no keep-alive, no compression. Loopback only. This is a decision, not a gap: the bind address is fixed to `127.0.0.1`, so the target has no network exposure. TLS and authentication would be needed only for a new, non-loopback target, which needs its own threat model ([../security/SERVER_THREAT_MODEL.md](../security/SERVER_THREAT_MODEL.md)).
+- No performance claim: the cap of 32 is a chosen bound, not a measured limit ([../performance/BASELINE.md](../performance/BASELINE.md)).

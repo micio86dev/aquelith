@@ -105,3 +105,39 @@ fn a_program_without_the_right_handler_is_refused() {
     // A plain str handler is the old contract: refused.
     assert!(matches!(start(wrong, 0), Err(ServeError::BadHandler(_))));
 }
+
+#[test]
+fn a_slow_client_does_not_block_another_client() {
+    // T4: a client that sends half a head and stops must not hold up a valid request from another client.
+    let p = lower_source(HANDLER).unwrap();
+    let addr = start(p, 0).unwrap();
+    let mut slow = TcpStream::connect(addr).unwrap();
+    slow.write_all(b"GET / HTTP/1.1\r\nHost: 127.0.0.1:").unwrap();
+    let started = std::time::Instant::now();
+    let r = get(addr, "/");
+    let elapsed = started.elapsed();
+    drop(slow);
+    assert_eq!(status(&r), "HTTP/1.1 200 OK", "{r}");
+    assert!(
+        elapsed < std::time::Duration::from_secs(2),
+        "the second client waited {elapsed:?} behind the slow one"
+    );
+}
+
+#[test]
+fn connections_past_the_cap_get_503_at_once() {
+    use aqelith::serve::MAX_CONNECTIONS;
+    let p = lower_source(HANDLER).unwrap();
+    let addr = start(p, 0).unwrap();
+    // Idle connections hold their slots until the head deadline (5 s).
+    let idle: Vec<TcpStream> = (0..MAX_CONNECTIONS)
+        .map(|_| TcpStream::connect(addr).unwrap())
+        .collect();
+    std::thread::sleep(std::time::Duration::from_millis(200));
+    let started = std::time::Instant::now();
+    let r = get(addr, "/");
+    let elapsed = started.elapsed();
+    drop(idle);
+    assert_eq!(status(&r), "HTTP/1.1 503 Service Unavailable", "{r}");
+    assert!(elapsed < std::time::Duration::from_secs(2), "503 took {elapsed:?}");
+}

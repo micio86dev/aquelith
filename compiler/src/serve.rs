@@ -7,16 +7,21 @@
 //! the language (`interp`), and the host is the only place that opens a socket.
 //!
 //! Limits: request head at most 8 KiB and 5 seconds; `GET` only; Host must be the loopback name
-//! and port; one connection at a time; a handler that fails answers 500 with no detail.
+//! and port; at most `MAX_CONNECTIONS` connections at once (one thread each), more get 503; a
+//! handler that fails answers 500 with no detail.
 
 use std::io::{ErrorKind, Read, Write};
 use std::net::{SocketAddr, TcpListener, TcpStream};
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use crate::interp::{run, Val};
 use crate::ir::Program;
 
 pub const MAX_HEAD: usize = 8 * 1024;
+/// Connections served at the same time; more get 503 at once.
+pub const MAX_CONNECTIONS: usize = 32;
 const HEAD_DEADLINE: Duration = Duration::from_secs(5);
 const IO_TIMEOUT: Duration = Duration::from_secs(5);
 
@@ -60,14 +65,31 @@ pub fn start(program: Program, port: u16) -> Result<SocketAddr, ServeError> {
         .local_addr()
         .map_err(|e| ServeError::Bind(e.to_string()))?;
     std::thread::spawn(move || {
+        let program = Arc::new(program);
+        let active = Arc::new(AtomicUsize::new(0));
         for stream in listener.incoming() {
             match stream {
-                // A panic in one request must not stop the accept loop: that connection is dropped
-                // and the server keeps serving.
-                Ok(stream) => {
-                    let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                        serve_one(stream, &program, addr.port(), req_index)
-                    }));
+                Ok(mut stream) => {
+                    // Each connection gets its own thread, so a slow client cannot hold up the others.
+                    // Past the cap the server answers 503 at once instead of queueing without bound.
+                    if active.load(Ordering::SeqCst) >= MAX_CONNECTIONS {
+                        let _ = stream.set_write_timeout(Some(Duration::from_millis(200)));
+                        respond(&mut stream, "503 Service Unavailable", b"");
+                        continue;
+                    }
+                    active.fetch_add(1, Ordering::SeqCst);
+                    let (program, slots) = (Arc::clone(&program), Arc::clone(&active));
+                    let spawned = std::thread::Builder::new().spawn(move || {
+                        // A panic in one request must not stop the server: that connection is dropped.
+                        let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                            serve_one(stream, &program, addr.port(), req_index)
+                        }));
+                        slots.fetch_sub(1, Ordering::SeqCst);
+                    });
+                    if spawned.is_err() {
+                        // No thread: the connection was dropped with the closure; release its slot.
+                        active.fetch_sub(1, Ordering::SeqCst);
+                    }
                 }
                 Err(_) => std::thread::sleep(Duration::from_millis(50)),
             }

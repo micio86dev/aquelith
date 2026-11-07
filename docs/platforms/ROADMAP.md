@@ -20,7 +20,7 @@ Status: **Proposed.** Each target below starts only when its feature document is
 ## Order and dependencies
 
 1. **Linux x86_64 server, conformance run.** Done under emulation: `conformance_server` passed 5 of 5 in a `linux/amd64` Docker container. A native Linux x86_64 machine is still needed before a Linux support claim.
-2. **Server production hardening.** The host is a loopback development host. Needed before any server target is called supported: TLS or an explicit non-loopback decision, authentication, and a process model that is not one connection at a time (threat model, residual risks).
+2. **Server production hardening.** Partly done for the loopback target. Done: the process model is concurrent (one thread per connection, cap of 32, tests `a_slow_client_does_not_block_another_client` and `connections_past_the_cap_get_503_at_once`). Decided: the server stays loopback-only, so TLS and authentication are not added; a non-loopback target needs its own threat model ([SERVE.md](../architecture/SERVE.md), [SERVER_THREAT_MODEL.md](../security/SERVER_THREAT_MODEL.md)). Open: an automated test for T8 (a panic in one request) and no third-party audit.
 3. **Record types in the language beyond request and response.** Needed by every target that exchanges data. Records are implemented for v0 ([RECORDS.md](../language/RECORDS.md)).
 4. **Desktop (one OS first).** Requires a native window interface, an event loop, and a renderer conformance suite (C3). Choose one operating system first; the other two follow the same interface.
 5. **Mobile (one OS first).** Requires a native UI, not a WebView wrapper ([PLATFORM_STRATEGY.md](PLATFORM_STRATEGY.md) section 4).
