@@ -35,6 +35,26 @@ print(sum(1 for i in page["items"] if i["kind"]=="link"))' "$json" "$route")
   echo "ok: accessibility $route ($links links, all focusable and labelled)"
 done
 
+# Click: activating the link "How it works" opens its page (same handler a pointer click calls).
+clicked="$("$out/aqhost" "$json" --click "How it works")"
+if [ "$(printf '%s\n' "$clicked" | head -1)" != "$(printf 'AXStaticText\tHow it works\tnot-focusable')" ] \
+  || printf '%s\n' "$clicked" | grep -q "One language for coding agents"; then
+  echo "FAIL: click did not open the page: $(printf '%s\n' "$clicked" | head -1)"; exit 1
+fi
+if ! printf '%s\n' "$clicked" | grep -q "^AXButton	Back home	focusable$"; then
+  echo "FAIL: the page opened by the click has no 'Back home' link"; exit 1
+fi
+if "$out/aqhost" "$json" --click "No such link" >/dev/null 2>&1; then
+  echo "FAIL: a click on a missing link should fail"; exit 1
+fi
+# Unknown route: the host refuses it with exit 1 (not 0, not a crash).
+rc=0; "$out/aqhost" "$json" --route /nope >/dev/null 2>&1 || rc=$?
+if [ "$rc" != "1" ]; then
+  echo "FAIL: unknown route should exit 1, got $rc"; exit 1
+fi
+echo "ok: unknown route exits 1"
+echo "ok: click opens the page for 'How it works' (activation via target-action, not an OS pointer event)"
+
 # Width: the same page is taller in a narrow window, because its text wraps.
 "$out/aqhost" "$json" --width 300 --snapshot "$out/narrow.png"
 "$out/aqhost" "$json" --width 900 --snapshot "$out/wide.png"

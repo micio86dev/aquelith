@@ -9,11 +9,11 @@ Status: **Proposed.** Each target below starts only when its feature document is
 | Web (browser), static pages | Built | `web/` tests, landing browser test |
 | Server, loopback HTTP, macOS arm64 | Minimal. C2 (loopback HTTP) passes; C1 passes on 4 corpus files, expected outputs pending owner review | `compiler/tests/serve.rs`, `conformance_server.rs`, [SERVER_CONFORMANCE.md](SERVER_CONFORMANCE.md) |
 | Server, Linux x86_64 | Minimal. Conformance passed 5 of 5 under emulation (`linux/amd64` container); native run pending | [SERVER_CONFORMANCE.md](SERVER_CONFORMANCE.md) |
-| Desktop, macOS arm64 | Started: static view and route switch done; click path unverified; D2 partly done. See [DESKTOP_MACOS.md](DESKTOP_MACOS.md) | `desktop/macos/check.sh` |
+| Desktop, macOS arm64 | Started: static view, route switch and link click (target-action) checked; a real OS pointer click not verified; D2 partly done. See [DESKTOP_MACOS.md](DESKTOP_MACOS.md) | `desktop/macos/check.sh` |
 | Desktop, Linux | Started: GTK host draws the pages and navigates by link, in a container; a real pointer click and a native Linux desktop are not verified. See [DESKTOP_LINUX.md](DESKTOP_LINUX.md) | `desktop/linux/check.sh` |
 | Desktop, Windows | Proposed, blocked: needs a Windows machine (or a Wine run, which is not Windows) | [DESKTOP_WINDOWS.md](DESKTOP_WINDOWS.md) |
 | Mobile, iOS | Proposed. Blocked: full Xcode not installed | [MOBILE_IOS.md](MOBILE_IOS.md) |
-| Mobile (iOS, Android) | No backend | none |
+| Mobile, Android | No backend | none |
 | Embedded and constrained | No backend | none |
 | Other operating systems | No backend | none |
 

@@ -2,8 +2,10 @@
 // `aqelith view <file.aq>`: one window, the page title as the window title, headings, paragraphs
 // and links. A link switches to the page with that route. The language knows nothing of AppKit.
 //
-// usage: aqhost <view.json> [--route /path] [--snapshot out.png]
+// usage: aqhost <view.json> [--route /path] [--snapshot out.png] [--ax-dump] [--click LABEL]
 //   --snapshot renders the window to a PNG and exits (used by the tests).
+//   --click LABEL activates the link with that label through its target-action (the handler a
+//   pointer click calls), then prints the accessibility lines of the page it opens and exits.
 import AppKit
 
 struct Item {
@@ -157,12 +159,15 @@ guard argv.count >= 2 else {
 var route: String? = nil
 var snapshotPath: String? = nil
 var axDump = false
+var clickLabel: String? = nil
 var width: CGFloat = 640
 var i = 2
 while i < argv.count {
     switch argv[i] {
     case "--route" where i + 1 < argv.count:
         route = argv[i + 1]; i += 2
+    case "--click" where i + 1 < argv.count:
+        clickLabel = argv[i + 1]; i += 2
     case "--snapshot" where i + 1 < argv.count:
         snapshotPath = argv[i + 1]; i += 2
     case "--width" where i + 1 < argv.count:
@@ -186,6 +191,21 @@ guard let start = pages.first(where: { route == nil ? true : $0.route == route! 
 let app = NSApplication.shared
 app.setActivationPolicy(snapshotPath == nil ? .regular : .prohibited)
 let host = Host(pages: pages, start: start, width: width)
+if let label = clickLabel {
+    host.window.contentView?.layoutSubtreeIfNeeded()
+    guard let button = host.stack.arrangedSubviews
+        .compactMap({ $0 as? NSButton })
+        .first(where: { $0.accessibilityLabel() == label }) else {
+        fputs("aqhost: no link labelled \(label) on this page\n", stderr)
+        exit(1)
+    }
+    button.performClick(nil)
+    host.window.contentView?.layoutSubtreeIfNeeded()
+    for line in host.accessibilityLines() {
+        print(line)
+    }
+    exit(0)
+}
 if axDump {
     // Prints one line per control: role, label, and whether it can take keyboard focus.
     host.window.contentView?.layoutSubtreeIfNeeded()
