@@ -1,0 +1,11 @@
+platforms;android-35	None	None	64273788	61.3 MiB	platform-35_r02.zip
+build-tools;35.0.1	macosx	None	76857925	73.3 MiB	build-tools_r35.0.1_macosx.zip
+cmdline-tools;latest	macosx	x64	155582504	148.4 MiB	commandlinetools-mac_x86_64-16111833_latest.zip
+cmdline-tools;latest	macosx	aarch64	155384151	148.2 MiB	commandlinetools-mac_arm64-16111833_latest.zip
+platform-tools	macosx	None	16516152	15.8 MiB	platform-tools_r37.0.2-darwin.zip
+platform-tools	macosx	None	16110554	15.4 MiB	platform-tools_r37.0.1-darwin.zip
+emulator	macosx	x64	492048225	469.3 MiB	emulator-darwin_x64-16847572.zip
+emulator	macosx	aarch64	424712130	405.0 MiB	emulator-darwin_aarch64-16847572.zip
+emulator	macosx	x64	488733162	466.1 MiB	emulator-darwin_x64-16740729.zip
+emulator	macosx	aarch64	416113219	396.8 MiB	emulator-darwin_aarch64-16740729.zip
+system-images;android-35;google_apis;arm64-v8a	None	None	1778933980	1696.5 MiB	arm64-v8a-35_r09.zip
