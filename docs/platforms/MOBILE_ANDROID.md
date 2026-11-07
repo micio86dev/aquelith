@@ -1,6 +1,6 @@
 # Mobile target: Android
 
-Status: **proposed, not started.** First mobile target, by the owner's decision on 2026-11-07. Roadmap: [ROADMAP.md](ROADMAP.md). The second mobile target is iOS ([MOBILE_IOS.md](MOBILE_IOS.md)).
+Status: **proposed, not started; the feature document is written and measured (A0).** First mobile target, by the owner's decision on 2026-11-07. Roadmap: [ROADMAP.md](ROADMAP.md). The second mobile target is iOS ([MOBILE_IOS.md](MOBILE_IOS.md)).
 
 ## Rules that apply
 
@@ -10,7 +10,7 @@ Status: **proposed, not started.** First mobile target, by the owner's decision 
 
 ## What is needed before any work starts
 
-1. A feature document, written and approved, as the roadmap requires.
+1. A feature document, written and approved, as the roadmap requires: [odd/tasks/mobile-android.md](../../odd/tasks/mobile-android.md) (status: awaiting owner approval of the measured footprint).
 2. The owner's approval to download the Android SDK, the build tools, and an emulator system image. Their sizes have not been measured yet. The internal disk has about 4.7 GiB free; the external SSD has about 38 GiB free, and the SDK could be placed there.
 3. A decision on the minimum Android version and the host toolchain. Neither is chosen yet.
 
