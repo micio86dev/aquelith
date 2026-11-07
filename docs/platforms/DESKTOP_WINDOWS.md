@@ -1,6 +1,6 @@
 # Desktop target: Windows (x86_64)
 
-Status: **proposed. Blocked: no Windows machine, and no free way to run Windows here.** Decided by the assistant as the next desktop target after Linux, under the owner's instruction to continue with Linux and then Windows.
+Status: **started for the compiler only.** The compiler suite passes natively on Windows x64 in GitHub Actions run 42365115292 (`windows-latest`, workflow `windows-x86_64`); no Windows desktop host exists yet. Decided by the assistant as the next desktop target after Linux, under the owner's instruction to continue with Linux and then Windows.
 
 ## Blockers, checked 2026-11-07
 
@@ -21,7 +21,7 @@ The same split as the other desktop targets ([DESKTOP_MACOS.md](DESKTOP_MACOS.md
 
 | Milestone | What | Acceptance | State |
 |---|---|---|---|
-| W0 | A Windows x86_64 environment (option 1 or 2) | `cmd /c ver` or equivalent prints the Windows version | Blocked (owner choice) |
+| W0 | A Windows x86_64 environment | Done for the compiler: the run log shows `host: Windows X64` and the suite passes (run 42365115292). No local Windows machine is needed | Done (GitHub-hosted runner) |
 | W1 | A Win32 host draws a checked module's first page | A screenshot from that environment, inspected | Not started |
 | W2 | Link navigation between pages | A click changes the page; the route is checked | Not started |
 | W3 | Accessibility: every control has a name and a role; keyboard focus reaches every link | An accessibility check run on Windows | Not started |
