@@ -12,8 +12,8 @@ Status: **Proposed.** Each target below starts only when its feature document is
 | Desktop, macOS arm64 | Started: static view, route switch and link click (target-action) checked; a real OS pointer click not verified; D2 partly done. See [DESKTOP_MACOS.md](DESKTOP_MACOS.md) | `desktop/macos/check.sh` |
 | Desktop, Linux | Started: GTK host draws the pages and navigates by link, in a container; a real pointer click and a native Linux desktop are not verified. See [DESKTOP_LINUX.md](DESKTOP_LINUX.md) | `desktop/linux/check.sh` |
 | Desktop, Windows | Proposed, blocked: needs a Windows machine (or a Wine run, which is not Windows) | [DESKTOP_WINDOWS.md](DESKTOP_WINDOWS.md) |
-| Mobile, iOS | Proposed. Blocked: full Xcode not installed | [MOBILE_IOS.md](MOBILE_IOS.md) |
-| Mobile, Android | No backend | none |
+| Mobile, Android | Proposed, first mobile target (owner decision, 2026-11-07). No backend yet. Blocked: the SDK download needs the owner's OK and disk space is low | [MOBILE_ANDROID.md](MOBILE_ANDROID.md) |
+| Mobile, iOS | Proposed, second mobile target (after Android). Blocked: full Xcode not installed (disk space) | [MOBILE_IOS.md](MOBILE_IOS.md) |
 | Embedded and constrained | No backend | none |
 | Other operating systems | No backend | none |
 
@@ -30,7 +30,7 @@ Status: **Proposed.** Each target below starts only when its feature document is
 ## Decisions the owner must make
 
 - Installing full Xcode for the iOS target ([MOBILE_IOS.md](MOBILE_IOS.md)). The owner has deferred it: disk space is too low for it now.
-- Approval of iOS as the first mobile target. The assistant proposed it; the owner has not approved it yet. Android is later.
+- The first mobile target is Android, then iOS (owner decision, 2026-11-07). Starting Android needs its feature document approved and the SDK download approved by the owner.
 - The memory model for the first non-web target (decision D3 in SERVER_LINUX_PLAN.md).
 
 ## What "any operating system and device" means here
