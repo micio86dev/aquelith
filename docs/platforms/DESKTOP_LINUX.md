@@ -12,12 +12,13 @@ Status: **started. The host draws a checked module's pages under a virtual displ
 ## Verified (2026-11-06)
 
 - Route `/`, `/how`, `/start`: accessibility (2, 1, 1 links, focusable and labelled) and a rendered PNG, inspected by eye for `/`.
+- Activating the link "How it works" opens its page. The check calls the same handler a pointer click calls (`--click`), so it tests the navigation, not the pointer event.
 - The image runs offline (`--network=none`) on an arm64 host.
 
 ## Not verified
 
 - A native Linux desktop, on a real display. The run is inside a container with a virtual X server.
-- Keyboard focus order, window resizing, the click path, and assistive technology (AT-SPI). AT-SPI is disabled in the check (`NO_AT_BRIDGE=1`), so the accessibility check is the host's own tree, not the platform's.
+- A real pointer click and keyboard focus order (Tab), window resizing, and assistive technology (AT-SPI). AT-SPI is disabled in the check (`NO_AT_BRIDGE=1`), so the accessibility check is the host's own tree, not the platform's.
 - x86_64 Linux: this image is arm64. The emulated x86_64 run covered the server target, not this host.
 
 ## Note on the entrypoint

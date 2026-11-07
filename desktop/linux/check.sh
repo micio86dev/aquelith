@@ -33,4 +33,12 @@ print(sum(1 for i in page["items"] if i["kind"]=="link"))' "$out/landing.json" "
   fi
   echo "ok: $route rendered ($size bytes)"
 done
+# Click: activating the link "How it works" opens its page (same handler as a pointer click).
+clicked=$(run "timeout 60 xvfb-run -a python3 /app/aqhost.py /data/landing.json --click 'How it works' 2>/dev/null")
+first=$(printf '%s\n' "$clicked" | head -1)
+if [ "$first" != "$(printf 'text\tHow it works\tnot-focusable')" ]; then
+  echo "FAIL: click did not open the page: first line was '$first'"; exit 1
+fi
+echo "ok: click opens the page for 'How it works'"
+
 echo "Linux desktop host checks passed (arm64 Linux container under Docker; not a native Linux desktop)"

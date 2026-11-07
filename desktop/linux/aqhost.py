@@ -5,9 +5,10 @@ Draws the JSON produced by `aqelith view <file.aq>`: one window, the page title 
 headings, paragraphs and links. A link switches to the page with that route. The language knows
 nothing about GTK.
 
-usage: aqhost.py <view.json> [--route /path] [--width N] [--snapshot out.png] [--ax-dump]
+usage: aqhost.py <view.json> [--route /path] [--width N] [--snapshot out.png] [--ax-dump] [--click LABEL]
   --snapshot saves the window as a PNG and exits (needs an X display, e.g. under xvfb-run).
   --ax-dump prints one line per control: role, label, focusable. Needs no display.
+  --click LABEL activates that link, then prints the accessibility lines of the page it opens.
 """
 import json
 import subprocess
@@ -80,6 +81,14 @@ class Host:
         if target is not None:
             self.show(target)
 
+    def click(self, label):
+        """Activates the link with this label, as a pointer click would (same handler)."""
+        for child in self.box.get_children():
+            if isinstance(child, Gtk.LinkButton) and child.get_label() == label:
+                child.emit("clicked")
+                return True
+        return False
+
     def ax_lines(self):
         lines = []
         for child in self.box.get_children():
@@ -98,6 +107,7 @@ def main(argv):
     snapshot = None
     width = 640
     ax_dump = False
+    click = None
     i = 2
     while i < len(argv):
         if argv[i] == "--route" and i + 1 < len(argv):
@@ -115,6 +125,9 @@ def main(argv):
         elif argv[i] == "--ax-dump":
             ax_dump = True
             i += 1
+        elif argv[i] == "--click" and i + 1 < len(argv):
+            click = argv[i + 1]
+            i += 2
         else:
             print(f"aqhost: unknown argument {argv[i]}", file=sys.stderr)
             return 2
@@ -123,6 +136,14 @@ def main(argv):
     if start is None:
         print("aqhost: no page for the requested route", file=sys.stderr)
         return 1
+    if click is not None:
+        host = Host(pages, start, width)
+        if not host.click(click):
+            print(f"aqhost: no link labelled {click!r} on this page", file=sys.stderr)
+            return 1
+        for line in host.ax_lines():
+            print(line)
+        return 0
     if ax_dump:
         host = Host(pages, start, width)
         for line in host.ax_lines():

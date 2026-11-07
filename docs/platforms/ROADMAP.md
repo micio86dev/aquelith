@@ -10,7 +10,7 @@ Status: **Proposed.** Each target below starts only when its feature document is
 | Server, loopback HTTP, macOS arm64 | Minimal. C2 (loopback HTTP) passes; C1 passes on 4 corpus files, expected outputs pending owner review | `compiler/tests/serve.rs`, `conformance_server.rs`, [SERVER_CONFORMANCE.md](SERVER_CONFORMANCE.md) |
 | Server, Linux x86_64 | Minimal. Conformance passed 5 of 5 under emulation (`linux/amd64` container); native run pending | [SERVER_CONFORMANCE.md](SERVER_CONFORMANCE.md) |
 | Desktop, macOS arm64 | Started: static view and route switch done; click path unverified; D2 partly done. See [DESKTOP_MACOS.md](DESKTOP_MACOS.md) | `desktop/macos/check.sh` |
-| Desktop, Linux | Started: GTK host draws the pages in a container; not a native desktop yet. See [DESKTOP_LINUX.md](DESKTOP_LINUX.md) | `desktop/linux/check.sh` |
+| Desktop, Linux | Started: GTK host draws the pages and navigates by link, in a container; a real pointer click and a native Linux desktop are not verified. See [DESKTOP_LINUX.md](DESKTOP_LINUX.md) | `desktop/linux/check.sh` |
 | Desktop, Windows | No backend | none |
 | Mobile, iOS | Proposed. Blocked: full Xcode not installed | [MOBILE_IOS.md](MOBILE_IOS.md) |
 | Mobile (iOS, Android) | No backend | none |
