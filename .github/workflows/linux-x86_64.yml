@@ -1,0 +1,28 @@
+name: linux-x86_64
+
+# Native x86_64 Linux run of the compiler suite, including the server conformance tests
+# (roadmap item 1, docs/platforms/ROADMAP.md). The runner is GitHub's ubuntu-latest, which is x86_64.
+
+on:
+  push:
+    branches: [feat/web-dev-loop, docs/m0-m1-research]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compiler:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assert the host is x86_64 Linux
+        run: |
+          test "$(uname -s)" = "Linux"
+          test "$(uname -m)" = "x86_64"
+          echo "host: $(uname -srm)"
+      - name: Test the compiler (includes conformance_server and serve)
+        working-directory: compiler
+        run: cargo test -q
