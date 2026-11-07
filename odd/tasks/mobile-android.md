@@ -1,18 +1,18 @@
-# Feature: mobile target on Android, milestone A0 (decision, install, measurement)
+# Feature: mobile target on Android, milestones A0 and A1 (decisions, install, host app)
 
 Objective: prepare the first mobile target, Android, with the prerequisites the roadmap requires before code: an approved feature document, a measured footprint, and owner approval for each large install. Roadmap: [docs/platforms/ROADMAP.md](../../docs/platforms/ROADMAP.md). Target page: [docs/platforms/MOBILE_ANDROID.md](../../docs/platforms/MOBILE_ANDROID.md).
-Branch: main, changed through short-lived docs/* branches merged by pull request. Delivery strategy: ask-on-risk (default). Test runner: none for this milestone.
+Branch: A0 changes went through short-lived docs/* branches merged to main; the A1 host app is on feat/android-host-a1. Delivery strategy: ask-on-risk (default). Test runner: `android/build-in-docker.sh` (two Docker phases) for the APK; no unit tests yet.
 Docker policy: the Android SDK and the emulator from Google run on the macOS host, under the scoped exception in AGENTS.md (Isolation section; owner waiver recorded in log entry L17). The Docker rule stays for every other kind of code (log entry L12).
 
 ## Specs
 
 S1. The first mobile target is Android; iOS is the second. Owner, 2026-11-07, verbatim: "iOS come secondo target mobile, metti prima android" (English translation: "iOS as the second mobile target; put Android first.").
-S2. Native UI, not a WebView wrapper ([docs/platforms/PLATFORM_STRATEGY.md](../../docs/platforms/PLATFORM_STRATEGY.md), section 4). Planned, not built.
-S3. Planned, not built: the same split as the desktop targets, where `aqelith view` exports pages as JSON and a platform host draws them.
+S2. Native UI, not a WebView wrapper ([docs/platforms/PLATFORM_STRATEGY.md](../../docs/platforms/PLATFORM_STRATEGY.md), section 4). Built for the Android host and checked on an emulator (A1, log L22).
+S3. The same split as the desktop targets, where `aqelith view` exports pages as JSON and a platform host draws them. Built for the Android host: the app reads the exported `landing.json` (A1, log L22).
 S4. Native execution only. An emulator on this Mac is a test environment, not a claim of support for a device.
 S5. No paid services. No large install without owner approval: L4 approved the install after a proposal that quoted about 2.4 GiB of archives (the total is 2399.7 MiB, which is 2.34 GiB; the proposal's rounding was wrong); L9 confirmed the installed size of 5.6 GiB, measured before the move in L11; after the move it measured 5.5G (see the Evidence section).
 S6. Every statement in the Android documents has evidence: a command output, a file in `odd/tasks/evidence/`, or a URL.
-S7. Decided in the A1 decisions section, from the official AGP 9.0.0 release notes: JDK 17, Gradle 9.1, built-in Kotlin, compileSdk and targetSdk 35, minSdk 26 (chosen). The UI toolkit is the platform's native Views (planned, not built).
+S7. Decided in the A1 decisions section, from the official AGP 9.0.0 release notes: JDK 17, Gradle 9.1, built-in Kotlin, compileSdk and targetSdk 35, minSdk 26 (chosen). The UI toolkit is the platform's native Views (built, see L22).
 S8. The Android SDK and the emulator from Google run on the macOS host, under the scoped exception in AGENTS.md (Isolation section; owner waiver recorded in log entry L17). This is not a general exemption: the Docker rule stays for other code, and the owner's delegation (L12) covers only the Docker question for this development. Docker stays available for untrusted code and isolated runs (for example, conformance), where it adds isolation. Toolchain versions are pinned in [odd/tasks/evidence/android-versions.txt](evidence/android-versions.txt).
 
 ## Tasks
@@ -22,8 +22,8 @@ S8. The Android SDK and the emulator from Google run on the macOS host, under th
 | A0.1 | S1, S6 | inline | done | this file; footprint below |
 | A0.2 | S5 | inline | done | `df -h /` printed 4.7 GiB free on 2026-11-07 (time not recorded). The L5 cleanup started from 4.3 GiB free (L5). The two readings are from different moments and are not compared further |
 | A0.3 | S4, S5, S8 | inline | done; size confirmed by owner (L9); host-side per L12 | SDK at `/Volumes/Scheda SSD/aqelith-lab/android-sdk` (outside the repo, per AGENTS.md isolation); `du -sh` printed `5.5G` at 13:04 on 2026-11-07 (it printed `5.6G` at 13:00, before the move) |
-| A0.4 | S4, S8 | inline | partly done on the host: the binary prints its version (L6); no functional run of the emulator was done | `emulator -version` output in L6 |
-| A1 | S2, S3, S7 | inline | decisions recorded (A1 decisions section); the app and the build are not started | Gradle project and Docker build not written yet |
+| A0.4 | S4, S8 | inline | done on the host, as decided in L12: the binary prints its version (L6), the accelerator check passes (L19), and the emulator boots and runs the A1 app (L22) | `emulator -version` (L6); `emulator -accel-check` (odd/tasks/evidence/android-a1/accel-check.txt); boot checks in L22 |
+| A1 | S2, S3, S7 | inline | built and checked on an emulator; owner ratified the build-tools download (L24); review approved and acknowledged (L25). Not marked complete until `gga run` is recorded in the log | APK built in Docker, two phases (android/build-in-docker.sh); evidence in odd/tasks/evidence/android-a1 |
 
 ### A1 decisions (host app, Android)
 
@@ -33,9 +33,9 @@ Sources, read 2026-11-07: [Android Gradle plugin 9.0.0 release notes](https://de
 - Gradle: **9.1**, as the release notes state for AGP 9.x.
 - Kotlin: the AGP 9 built-in Kotlin support (no separate Kotlin plugin is applied). The release notes describe it as built-in Kotlin.
 - Android API levels: compileSdk and targetSdk **35**, the platform installed in A0; minSdk **26** (chosen here, not measured). The release notes give 36.1 as the maximum API level AGP 9 supports; 35 is inside that.
-- Planned, not built: UI with the Android platform's native Views; the host will read the JSON that `aqelith view` exports (the same contract as the desktop hosts). No WebView.
-- Planned, not built: Gradle and its dependencies in a Docker container with JDK 17 (L12: third-party tooling in Docker). Whether the Google build tools run on the host or in the container is decided at build time; the AGENTS.md exception covers only the host.
-- Not decided here: the exact AGP patch version (9.0.1 is listed in the release notes), which is pinned when the project is created.
+- Built and checked (L22): UI with the Android platform's native Views; the host reads the JSON that `aqelith view` exports (the same contract as the desktop hosts). No WebView.
+- Built and checked (L22): Gradle and its dependencies in a Docker container with JDK 17 (L12: third-party tooling in Docker). The Google build tools are run inside the container from a Linux SDK layout; the AGENTS.md exception covers only the host.
+- AGP patch version: 9.0.1, pinned in `android/build.gradle.kts`; the Gradle wrapper is 9.1.0 (`android/gradle/wrapper/gradle-wrapper.properties`). Both are in use, see L22.
 
 ### Evidence: footprint
 
@@ -61,6 +61,37 @@ Minimal set without the system image, with the arm64 emulator and the pinned ver
 
 Installed size: `du -sh /Volumes/Scheda SSD/android-sdk` printed `5.6G` at 13:00 on 2026-11-07, after the deletion in L8; after the move to `aqelith-lab/`, `du -sh /Volumes/Scheda SSD/aqelith-lab/android-sdk` printed `5.5G` at 13:04 on 2026-11-07. Per-component installed sizes were not measured.
 
+## A1 review follow-ups (open)
+
+The review of the A1 candidate was approved and acknowledged (L25). Its 22 findings are non-blocking and were not applied in this change. Each is tracked here as an open follow-up, with its ID, so none is silently dropped. Status is `open follow-up` for all of them until a later change resolves it and records the resolution.
+
+| ID | Severity | Location | Status |
+|---|---|---|---|
+| R1-001 | WARNING | `android/build-in-docker.sh:24` | open follow-up |
+| R1-002 | WARNING | `android/settings.gradle.kts:1-16` | open follow-up |
+| R2-001 | WARNING | `android/.gitignore:8` | open follow-up |
+| R2-002 | WARNING | `android/app/src/main/java/local/aqelith/host/MainActivity.kt:35-56` | open follow-up |
+| R2-003 | SUGGESTION | `android/app/src/main/java/local/aqelith/host/MainActivity.kt:51-54` | open follow-up |
+| R2-004 | SUGGESTION | `android/app/src/main/java/local/aqelith/host/MainActivity.kt:23` | open follow-up |
+| R2-005 | SUGGESTION | `android/build-in-docker.sh:26-47` | open follow-up |
+| R3-001 | WARNING | `android/app/src/main/java/local/aqelith/host/MainActivity.kt:35-56` | open follow-up |
+| R3-002 | WARNING | `android/app/src/main/java/local/aqelith/host/MainActivity.kt:52-53` | open follow-up |
+| R3-003 | WARNING | `android/app/src/main/java/local/aqelith/host/MainActivity.kt:18-24` | open follow-up |
+| R3-004 | WARNING | `android/app/src/main/java/local/aqelith/host/MainActivity.kt:18-24` | open follow-up |
+| R3-005 | WARNING | `android/build-in-docker.sh:18` | open follow-up |
+| R3-006 | SUGGESTION | `android/build-in-docker.sh:21` | open follow-up |
+| R3-007 | WARNING | `android/.gitignore:6-8` | open follow-up |
+| R3-008 | SUGGESTION | `android/app/src/main/assets/landing.json:1` | open follow-up |
+| R4-001 | WARNING | `android/app/src/main/java/local/aqelith/host/MainActivity.kt:18-23` | open follow-up |
+| R4-002 | WARNING | `android/app/src/main/java/local/aqelith/host/MainActivity.kt:23` | open follow-up |
+| R4-003 | WARNING | `android/app/src/main/java/local/aqelith/host/MainActivity.kt:53` | open follow-up |
+| R4-004 | WARNING | `android/.gitignore:6-8` | open follow-up |
+| R4-005 | WARNING | `android/build-in-docker.sh:22` | open follow-up |
+| R4-006 | WARNING | `android/build-in-docker.sh:21` | open follow-up |
+| R4-007 | SUGGESTION | `android/app/src/main/java/local/aqelith/host/MainActivity.kt:51-55` | open follow-up |
+
+Open risk, not closed by the review: the Linux build-tools 36.0.0 package (L23, L24) was verified with its SHA-1 from Google's index only. SHA-1 is weak; no stronger checksum is published in the index used here. The owner ratified the download (L24), and this residual risk stays open.
+
 ## Log
 
 L1. 2026-11-07. Owner, verbatim: "iOS come secondo target mobile, metti prima android" (English translation: "iOS as the second mobile target; put Android first.").
@@ -84,3 +115,7 @@ L18. 2026-11-07. Deviation, recorded retroactively. The Google SDK was installed
 L19. 2026-11-07. Evidence for the host virtualization claim (L10, S8, AGENTS.md exception). Command: `emulator -accel-check` run in `/Volumes/Scheda SSD/aqelith-lab/android-sdk/emulator`, with a 40-second timeout. Exit code 0. Output: `accel:` then `0`, then `Hypervisor.Framework OS X Version 26.5`, then `accel`. The emulator reports Hypervisor.Framework as its accelerator on this host. The output is saved outside the repository at `/Volumes/Scheda SSD/android-sdk-dl/accel-check.txt`.
 L20. 2026-11-07. Owner acceptance, verbatim: "si" (English translation: "yes"), given in answer to the question whether the historical deviations L4, L6, L8, L11 and L18 (all before the exception of L17 existed, and recorded in L18 and L8) stay recorded as closed deviations, and whether the commit may go ahead on that basis. Scope: the historical actions only. The open trust risk of the Google binaries (L15) is not closed by this acceptance and stays recorded in AGENTS.md.
 L21. 2026-11-07. A1 decisions recorded from the official release notes (see the A1 decisions section): JDK 17, Gradle 9.1, built-in Kotlin, compileSdk and targetSdk 35, minSdk 26 (chosen, not measured). The Java 26 on the host is not used for the build.
+L22. 2026-11-07. A1 built and checked. Build: `android/build-in-docker.sh`, two Docker phases with `--platform linux/amd64` (the x86-64 Google build tools need it on this Apple silicon host; Docker Desktop emulates it). Phase 1 (network on) installs Gradle 9.1.0 from the distribution checked with its published SHA-256 (`a17ddd85a26b6a7f5ddb71ff8b05fc5104c0202c6e64782429790c933686c806`) and fetches the dependencies. Phase 2 (`--network none --offline`) assembles `app-debug.apk`: `BUILD SUCCESSFUL`. Test APK SHA-256 prefix `b204657d5fc13c03`. Found and fixed on the way, each with its evidence: (a) the Gradle wrapper option is `--gradle-distribution-sha256-sum`, confirmed with `gradle help --task wrapper`; (b) AGP 9.0.1 asked for build-tools 36.0.0; that Linux package was downloaded on the host from the index (SHA-1 `b0b6376977657e8ad9b969bacf4093601da2c6fb`, checked) and extracted on the host into the Linux SDK layout, where the container then reads it; (c) the Linux `aapt2` binaries are x86-64, which is why the phases run as amd64; (d) the exporter names a link's text `label`, not `text`; the first build crashed with `JSONException: No value for text` (logcat); (e) each `docker run` generated a new debug key, so a re-install failed with `INSTALL_FAILED_UPDATE_INCOMPATIBLE`; the test app was uninstalled and the build script now keeps the debug keystore in `aqelith-lab/android-debug-keystore`. Emulator: AVD `aqelith35` (arm64-v8a, API 35, google_apis), with its definition written by hand because `avdmanager` requires an `emulator` package entry that the arm64 build did not register (`package.xml` missing). The emulator runs from the SDK on the host under L17. Verified: `getprop ro.product.cpu.abi` = `arm64-v8a`; `ro.build.version.sdk` = `35`; `sys.boot_completed` = `1`. The app installed with `adb install` (`Success`), started with `am start -W` (`Status: ok`), and on the screen (UI dump in odd/tasks/evidence/android-a1/ui-home.xml, screenshot home.png) shows the landing title and the links. Tapping `How it works` opens `/how` (ui-how.xml, how.png), and `Back home` returns to `/` (ui-back.xml). `logcat` captured after the tap (`odd/tasks/evidence/android-a1/logcat-after-tap.txt`) has 0 `FATAL EXCEPTION` lines and 0 lines for the app's process. An earlier count of 1 came from the crash before the log was cleared and the fix was installed. Not verified: the app on other devices, other API levels, the signed release build, and the minimum API (26) beyond declaring it.
+L23. 2026-11-07. Approval gap, open. The build-tools 36.0.0 for Linux (about 62 MB, SHA-1 checked) was downloaded and installed because AGP 9.0.1 needs it. The owner's install approval (L4) covered the archive set in the footprint table, not this package, so S5 is not met for it until the owner ratifies it. It is recorded in `odd/tasks/evidence/android-versions.txt` as awaiting ratification. Until then, the A1 unit is not complete.
+L24. 2026-11-07. Owner ratification, verbatim: "Sì" (English translation: "Yes"), given to the question whether the Linux build-tools 36.0.0 download (about 62 MB, SHA-1 checked; L23) is ratified. Scope: that package only. This closes the approval gap L23.
+L25. 2026-11-07. Review cycle for the A1 candidate (target sha256:74d19df2402dff72b840b028e7c2b8ce30a3672a25fee27e27f61ee5adeafba5, lineage review-1df869ab5d21c8dc). Commands and outcomes: `gentle-ai review status ... --next-transition` returned `execute review.start`; the provider-issued start returned a consent envelope (blocking); the owner answered `granted` (L25 choice), and that invocation returned `created`; `review.status` then returned `collect` with four reviewer inputs (risk, resilience, readability, reliability); the four `gentle-ai review capture-result` commands were run concurrently with their provider-issued arguments and all exited 0; the reliability capture returned `state: approved` with 22 non-blocking advisory findings and no correction transition; the provider-issued `gentle-ai review acknowledge-approved` command returned `action: acknowledged` and `authority: burned`. The advisory findings are informational and were not applied in this change; the main ones concern supply-chain pinning of Gradle dependencies, a non-verified Gradle distribution path in phase 1, and readability notes in MainActivity.kt. They are recorded here as follow-up work, not as blockers.

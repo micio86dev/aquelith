@@ -6,5 +6,14 @@ emulator              37.3.8      (emulator/source.properties, Pkg.Revision; `em
 platforms;android-35  rev 2       (platforms/android-35/source.properties, Pkg.Revision)
 build-tools;35.0.1    35.0.1      (build-tools/35.0.1/source.properties)
 system-image arm64-v8a android-35 google_apis rev 9 (system-images/.../source.properties, Pkg.Revision)
-java                  26.0.1      (`java -version`; the Android Gradle Plugin may require JDK 17 or 21, to be checked in A1)
+java                  26.0.1      host (`java -version`); NOT used for the build
+build JDK               17.0.21     eclipse-temurin:17-jdk (Docker image, linux/amd64), inside the container
 host                  macOS arm64 (Apple M1), `uname -m` arm64
+
+# A1 host app (android/): toolchain used by android/build-in-docker.sh
+Android Gradle plugin    9.0.1       android/build.gradle.kts (pinned); release notes read 2026-11-07
+Gradle                   9.1.0       android/gradle/wrapper/gradle-wrapper.properties; distribution SHA-256 a17ddd85a26b6a7f5ddb71ff8b05fc5104c0202c6e64782429790c933686c806 (published by Gradle, checked)
+build-tools (Linux)      35.0.1      $AQELITH_LAB/android-linux-sdk/build-tools/35.0.1 (SHA-1 e009a9b188cfeb1d2b4c318ab5cb4f1ddc368861, checked)
+build-tools (Linux)      36.0.0      $AQELITH_LAB/android-linux-sdk/build-tools/36.0.0 (SHA-1 b0b6376977657e8ad9b969bacf4093601da2c6fb, checked). Downloaded because AGP 9.0.1 asked for it; ratified by the owner (log L24)
+platform-tools (Linux)   37.0.1      $AQELITH_LAB/android-linux-sdk/platform-tools (SHA-1 477254aa5f903c15cf51001717bdf347fb6b53e0, checked)
+Docker image             eclipse-temurin:17-jdk, digest sha256:43338b737d0f75d6883d3c4563bc66974113ca8ac296e82f39d161fb3d398f0d (pulled 2026-11-07)
