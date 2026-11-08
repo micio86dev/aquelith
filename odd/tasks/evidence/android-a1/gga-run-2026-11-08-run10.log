@@ -1,0 +1,38 @@
+
+[0;36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+[0;36m[1m  Gentleman Guardian Angel v2.10.1[0m
+[0;36m  Provider-agnostic code review using AI[0m
+[0;36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+
+[0;34mℹ️  Provider: claude[0m
+[0;34mℹ️  Rules file: AGENTS.md[0m
+[0;34mℹ️  File patterns: *.md,*.rs,*.ts,*.tsx,*.js,*.jsx[0m
+[0;34mℹ️  Exclude patterns: *.test.ts,*.spec.ts,*.test.tsx,*.spec.tsx,*.d.ts[0m
+[0;34mℹ️  Cache: [1;33mdisabled (--no-cache)[0m[0m
+
+[1mFiles to review:[0m
+  - odd/tasks/mobile-android.md
+
+[0;34mℹ️  Sending to claude for review (timeout: 300s)...[0m
+
+  Waiting for Claude response (timeout: 300s)...
+  ... still waiting (30s elapsed)
+Warning: this sign-in ends between 2026-11-13 and 2026-11-16 (in 5 days at the earliest). Renewing it does not move those dates. Run claude auth login before then, or use claude setup-token for unattended jobs.
+STATUS: PASSED
+
+I reviewed `odd/tasks/mobile-android.md` against the engineering contract. It complies, with three notes that are not violations.
+
+- **Language:** The body is English. Italian appears only as verbatim owner quotes with English translations (S1, L1, L2, L4, L5, L9, L10, L12, L17, L20, L24, L27, L33), which the contract allows.
+- **Documentation scope:** Planned work is marked as planned (S8, "Planned, not done"). Open items are marked open (R1-002, R2-002, and the four open rows in the follow-up table).
+- **Isolation:** The host-side SDK and emulator follow the scoped exception in AGENTS.md (L17). The network-enabled phase 1 of the Docker build is covered by the amendment in L35. L22 records the earlier phase-1 run as historical.
+- **Attribution and secrets:** No AI attribution, credentials, or secrets appear.
+- **Gates:** L8 deleted files before asking, and L23 installed build-tools before approval. Both are recorded and were ratified afterward (L9, L24). I did not count them as failures: the gate covers destructive actions on unrelated data, and the L8 items were downloads made during this task. The document itself calls L8 a rule break, though, so keep that wording.
+
+Observations, not violations:
+1. The two `dl.google.com` index URLs in the footprint section have no access date. The date rule in AGENTS.md covers only competitor and reference documents, but adding one would match the rest of the file.
+2. The file contains absolute local paths (`/Volumes/Scheda SSD/...`). The contract does not cover this. If the repository is public, consider replacing them with repo-relative or placeholder paths.
+3. The `gentle-ai review ...` commands in L25 should match the `gentle-ai` 4.3.1 help, as AGENTS.md requires. I did not run the CLI, so this is unverified.
+
+[0;32m✅ CODE REVIEW PASSED[0m
+
+[0m
