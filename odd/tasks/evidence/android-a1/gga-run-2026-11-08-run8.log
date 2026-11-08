@@ -1,0 +1,36 @@
+
+[0;36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+[0;36m[1m  Gentleman Guardian Angel v2.10.1[0m
+[0;36m  Provider-agnostic code review using AI[0m
+[0;36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+
+[0;34mℹ️  Provider: claude[0m
+[0;34mℹ️  Rules file: AGENTS.md[0m
+[0;34mℹ️  File patterns: *.md,*.rs,*.ts,*.tsx,*.js,*.jsx[0m
+[0;34mℹ️  Exclude patterns: *.test.ts,*.spec.ts,*.test.tsx,*.spec.tsx,*.d.ts[0m
+[0;34mℹ️  Cache: [1;33mdisabled (--no-cache)[0m[0m
+
+[1mFiles to review:[0m
+  - AGENTS.md
+  - odd/tasks/mobile-android.md
+
+[0;34mℹ️  Sending to claude for review (timeout: 300s)...[0m
+
+  Waiting for Claude response (timeout: 300s)...
+  ... still waiting (30s elapsed)
+Warning: this sign-in ends between 2026-11-13 and 2026-11-16 (in 5 days at the earliest). Renewing it does not move those dates. Run claude auth login before then, or use claude setup-token for unattended jobs.
+STATUS: PASSED
+
+All files comply with the AGENTS.md contract. I checked the referenced evidence paths, the `gga` log index, and the isolation exceptions. I did not run `gga` or `gentle-ai`.
+
+Advisories, not violations:
+
+1. **`odd/tasks/mobile-android.md:130` (L34) and `:30`**: the citation says the extract's page SHA-256 "is recorded in L34", and L34 repeats that placeholder wording. The hash is there, so the claim is traceable, but the sentence is self-referential. Rewrite it to name the hash directly.
+2. **`odd/tasks/mobile-android.md:30`**: "Sources, read 2026-11-07" conflicts with L34, which says the page changed and was re-read on 2026-11-08. Update the date so the decisions cite the current extract.
+3. **Gradle verification (AGENTS.md, Isolation; `odd/tasks/mobile-android.md:` L31, R1-002)**: phase 2 does verify against the metadata, as the contract requires. But that metadata is written from the same phase-1 fetch, so the check is self-referential (trust on first use). The doc already records this as open.
+4. **Commit gate**: the staged set includes L28/L36 changes, but the last seven `gga` runs in `gga-index.txt` are FAILED (runs 3–7 are the latest shown). Do not commit until a run passes, as L29(d) states.
+5. **L8 (historical)**: files were deleted before the owner was asked, against the "stop and ask" gate for destructive actions. The owner accepted it in L20, so it stays a recorded, closed deviation.
+
+[0;32m✅ CODE REVIEW PASSED[0m
+
+[0m

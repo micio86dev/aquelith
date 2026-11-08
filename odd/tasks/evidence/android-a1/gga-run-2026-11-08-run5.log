@@ -1,0 +1,48 @@
+
+[0;36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+[0;36m[1m  Gentleman Guardian Angel v2.10.1[0m
+[0;36m  Provider-agnostic code review using AI[0m
+[0;36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+
+[0;34mℹ️  Provider: claude[0m
+[0;34mℹ️  Rules file: AGENTS.md[0m
+[0;34mℹ️  File patterns: *.md,*.rs,*.ts,*.tsx,*.js,*.jsx[0m
+[0;34mℹ️  Exclude patterns: *.test.ts,*.spec.ts,*.test.tsx,*.spec.tsx,*.d.ts[0m
+[0;34mℹ️  Cache: [1;33mdisabled (--no-cache)[0m[0m
+
+[1mFiles to review:[0m
+  - AGENTS.md
+  - odd/tasks/mobile-android.md
+
+[0;34mℹ️  Sending to claude for review (timeout: 300s)...[0m
+
+  Waiting for Claude response (timeout: 300s)...
+  ... still waiting (30s elapsed)
+  ... still waiting (60s elapsed)
+Warning: this sign-in ends between 2026-11-13 and 2026-11-16 (in 5 days at the earliest). Renewing it does not move those dates. Run claude auth login before then, or use claude setup-token for unattended jobs.
+STATUS: FAILED
+
+Reviewed: `AGENTS.md` and `odd/tasks/mobile-android.md`. `AGENTS.md` matches the standards text, and its Android exceptions are owner-approved (L17, L33, L35). The violations are in the feature document.
+
+**Violations**
+
+1. **`odd/tasks/mobile-android.md`, "A1 decisions", the bullet on AGP and the wrapper.** The bullet says "the Gradle wrapper is 9.1.0 (`android/gradle/wrapper/gradle-wrapper.properties`)" and cites "see L22". Rule violated: S6 ("every statement … has evidence") and "evidence before decisions". Two problems:
+   - R2-001 says `gradle/wrapper/` is generated and not versioned, so the cited file is not a reviewable source.
+   - L36 says the 9.1.0 pin lives in the script (`--gradle-version 9.1.0`). This section was not updated to match.
+   - L22 does not show that file's contents. Fix: cite the script line, or attach command output that reads the value.
+
+2. **`odd/tasks/mobile-android.md`, L29(c).** "the host only unzips the Google archives" has no command or output. Rule violated: S6. Fix: add the command and its output, or narrow the claim.
+
+3. **`odd/tasks/mobile-android.md`, L36 and the A1 status.** Run 4 of `gga` FAILED. The phase-1 network finding is handled by saying the reviewer "read [AGENTS.md] as stale". That is not verified and does not fix the finding. Rule violated: "Run `gga run` before considering a unit complete; fix findings, never suppress them." The document correctly keeps A1 "in progress". Fix: re-run `gga` against the current `AGENTS.md`, record the result, and do not commit until a run passes.
+
+**Notes (not counted as violations)**
+
+- The document quotes the owner in Italian (S1, L1–L33), each with an English translation. This is verbatim quotation, but it conflicts with "docs in English". Consider keeping the quotes and translating them only in the summary.
+- Earlier deviations (L4, L8, L18, L23) were recorded and then accepted or ratified (L9, L20, L24). They are not current failures.
+- Several evidence files cited in the log (`accel-check.txt`, `logcat-after-tap.txt`, `ui-home.xml`, `android-sizes.tsv`, `measure-android-sizes.py`, `android-versions.txt`) are absent from the staged snapshot. They may already be committed. I could not check that from the material provided, so I have not counted them as violations.
+
+[0;31m❌ CODE REVIEW FAILED[0m
+
+Fix the violations listed above before committing.
+
+[0m

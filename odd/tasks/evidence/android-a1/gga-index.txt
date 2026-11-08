@@ -1,0 +1,11 @@
+gga run index, A1 host app (feat/android-host-a1 follow-up on fix/android-verify-gradle-zip)
+Each line: run, date, STATUS, saved log. Logs are full gga outputs.
+run 1  2026-11-07  FAILED  gga-run-failed-1-2026-11-07.log
+run 2  2026-11-08  FAILED  gga-run-2026-11-08-run2.log
+run 3  2026-11-08  FAILED  gga-run-2026-11-08-run3.log
+run 4  2026-11-08  FAILED  gga-run-2026-11-08-run4.log
+run 5  2026-11-08  FAILED  gga-run-2026-11-08-run5.log
+run 6  2026-11-08  FAILED  gga-run-2026-11-08-run6.log
+run 7  2026-11-08  FAILED  gga-run-2026-11-08-run7.log
+run 8  2026-11-08  PASSED  gga-run-2026-11-08-run8.log
+run 9  2026-11-08  PASSED  gga-run-2026-11-08-run9.log
