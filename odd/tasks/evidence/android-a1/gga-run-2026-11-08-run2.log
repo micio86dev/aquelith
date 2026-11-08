@@ -1,0 +1,49 @@
+
+[0;36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+[0;36m[1m  Gentleman Guardian Angel v2.10.1[0m
+[0;36m  Provider-agnostic code review using AI[0m
+[0;36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+
+[0;34mℹ️  Provider: claude[0m
+[0;34mℹ️  Rules file: AGENTS.md[0m
+[0;34mℹ️  File patterns: *.md,*.rs,*.ts,*.tsx,*.js,*.jsx[0m
+[0;34mℹ️  Exclude patterns: *.test.ts,*.spec.ts,*.test.tsx,*.spec.tsx,*.d.ts[0m
+[0;34mℹ️  Cache: [1;33mdisabled (--no-cache)[0m[0m
+
+[1mFiles to review:[0m
+  - odd/tasks/mobile-android.md
+
+[0;34mℹ️  Sending to claude for review (timeout: 300s)...[0m
+
+  Waiting for Claude response (timeout: 300s)...
+  ... still waiting (30s elapsed)
+Warning: this sign-in ends between 2026-11-13 and 2026-11-16 (in 5 days at the earliest). Renewing it does not move those dates. Run claude auth login before then, or use claude setup-token for unattended jobs.
+STATUS: FAILED
+
+One standard is violated. The rest of the checked claims hold.
+
+**Violation**
+
+1. **`android/build-in-docker.sh:3-6, 52-53`**, rule: AGENTS.md Isolation, "Untrusted code is built and run inside Docker (`--network=none` after fetch)". Phase 1 runs `./gradlew ... :app:assembleDebug` with network on, so third-party build plugins execute with network access. The log admits this (L32). The owner accepted it (L33), but L33 also says it "does not change the isolation exception in AGENTS.md", and AGENTS.md was not amended. The file therefore complies with the log, not with the standard as written. Fix: either amend AGENTS.md with a scoped, owner-approved exception that names phase 1, or move the build to a fetch-only step followed by a `--network none` compile.
+
+**Warnings (not failures)**
+
+2. **`android/.gitignore:6-8`**: the file also ignores `gradlew` and `gradlew.bat`, not only `gradle/wrapper/`. L28(5) says the file "now ignores only `gradle/wrapper/`", which is inaccurate. The wrapper script is then generated at build time and is not versioned, so its content is not reviewed. This sits against the security-first pillar. Either version the scripts or document why they are generated.
+2. **`odd/tasks/mobile-android.md`, L15 and L14(a)**: the signature evidence is still partial, and the open trust risk is carried correctly. No change needed, but it stays open.
+3. **L8**: files were deleted before owner confirmation. The deleted items were this task's own downloads, so this is not the AGENTS.md gate for "unrelated data". The deviation is recorded and accepted in L9 and L20, so I'm not counting it as a failure.
+
+**Checked and compliant**
+
+- Referenced evidence files exist, including `accel-check.txt`, `ui-home.xml`, `logcat-after-tap.txt`, `build-sha-guard.log`, `agp-9.0.0-release-notes-extract.txt`, `android-versions.txt`, `measure-android-sizes.py`, and `android-sizes.tsv`.
+- Build settings match the decisions: AGP 9.0.1 in `android/build.gradle.kts`, no Kotlin plugin applied, compileSdk 35, targetSdk 35, minSdk 26, JDK 17, Gradle 9.1.0 with the SHA-256 that L26 and L29 cite.
+- The R1-001, R2-004, R2-005, R3-005, R4-002, R4-005 "resolved" claims match the code: the hash check runs before any container, the image is pinned by digest, a single `run_in_container` helper exists, and the `first` call is gone.
+- The follow-up table arithmetic is consistent: 22 findings, 6 resolved, 12 accepted, 4 open, 18 dispositioned.
+- Quoted Italian owner text carries English translations, which is acceptable as verbatim evidence. Prose, code, and commit text are in English.
+
+I did not read the content of `gga-run-final-2026-11-08.log`, so I have not verified its PASS result.
+
+[0;31m❌ CODE REVIEW FAILED[0m
+
+Fix the violations listed above before committing.
+
+[0m

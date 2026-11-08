@@ -1,0 +1,1 @@
+cmp exit code: 0

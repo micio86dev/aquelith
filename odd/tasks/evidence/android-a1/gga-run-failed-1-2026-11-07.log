@@ -1,0 +1,60 @@
+
+[0;36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+[0;36m[1m  Gentleman Guardian Angel v2.10.1[0m
+[0;36m  Provider-agnostic code review using AI[0m
+[0;36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+
+[0;34mℹ️  Provider: claude[0m
+[0;34mℹ️  Rules file: AGENTS.md[0m
+[0;34mℹ️  File patterns: *.md,*.rs,*.ts,*.tsx,*.js,*.jsx[0m
+[0;34mℹ️  Exclude patterns: *.test.ts,*.spec.ts,*.test.tsx,*.spec.tsx,*.d.ts[0m
+[0;34mℹ️  Cache: [1;33mdisabled (--no-cache)[0m[0m
+
+[1mFiles to review:[0m
+  - odd/tasks/mobile-android.md
+
+[0;34mℹ️  Sending to claude for review (timeout: 300s)...[0m
+
+  Waiting for Claude response (timeout: 300s)...
+  ... still waiting (30s elapsed)
+  ... still waiting (60s elapsed)
+Warning: this sign-in ends between 2026-11-13 and 2026-11-16 (in 6 days at the earliest). Renewing it does not move those dates. Run claude auth login before then, or use claude setup-token for unattended jobs.
+STATUS: FAILED
+
+**Violations**
+
+1. **`odd/tasks/mobile-android.md`, line 26 (A1 row) and the Log**
+   - **Rule:** AGENTS.md, Workflow: "Run `gga run` before considering a unit complete; fix findings, never suppress them."
+   - **Issue:** The A1 row says "Not marked complete until `gga run` is recorded in the log." No log entry records a passing `gga run`. The staged evidence file `odd/tasks/evidence/android-a1/gga-run-2026-11-07.log` ends with `STATUS: FAILED` and two violations. The first (the accel-check path, L19) is fixed: line 115 now says the file is saved in the repository. The second (the missing gga record for A1) is still open. The A1 work is already merged (PR #8, `7c0cd3a`), so the unit is treated as delivered while its own completion gate is unmet.
+   - **Fix:** Re-run `gga run` on this file, add a Log entry with the command and result, and update row 26.
+
+2. **`odd/tasks/mobile-android.md`, line 4 (header)**
+   - **Rule:** Documentation must describe the current state, not a past one.
+   - **Issue:** It says "the A1 host app is on feat/android-host-a1." That branch was merged in PR #8.
+   - **Fix:** Update the header to say A1 is merged to `main`.
+
+3. **`odd/tasks/mobile-android.md`, lines 64–92 (follow-ups table)**
+   - **Rule:** "Fix findings, never suppress them."
+   - **Issue:** 21 of 22 review findings are deferred. They are tracked, not hidden, so this is a warning, not a suppression. The owner has not explicitly accepted the deferral, though.
+   - **Fix:** Ask the owner to accept or reject the deferral in a Log entry.
+
+**Recorded and accepted, not counted as failures**
+- L8 (line 104): files were deleted before the owner was asked. This breaks the "stop and ask" gate for destructive actions. It is labelled as a deviation and accepted in L20.
+- L18 (line 114): host runs happened before the exception existed. Labelled as a deviation and accepted.
+
+**Checked and passing**
+- The gga warning on L23 is out of date. Line 119 already starts with "Deviation:".
+- Language: the body is English. Italian appears only as verbatim owner quotes with English translations.
+- Footprint arithmetic: 703.2 MiB, 2399.7 MiB, and 2.34 GiB are correct.
+- The Isolation exception is cited correctly against L17.
+- I read `android/build-in-docker.sh`. The SHA-256 check runs on the host before any `docker run` (lines 22–23), and phase 2 uses `--network none --offline`. This matches L26 and the Isolation rule.
+
+**Not verified:** the evidence files the document cites (other than the gga log and the build script), the SHA-256 values, and the release-notes extract.
+
+Want me to re-run `gga run` on this file and draft the Log entry?
+
+[0;31m❌ CODE REVIEW FAILED[0m
+
+Fix the violations listed above before committing.
+
+[0m

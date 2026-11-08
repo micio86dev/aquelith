@@ -1,0 +1,54 @@
+
+[0;36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+[0;36m[1m  Gentleman Guardian Angel v2.10.1[0m
+[0;36m  Provider-agnostic code review using AI[0m
+[0;36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+
+[0;34mℹ️  Provider: claude[0m
+[0;34mℹ️  Rules file: AGENTS.md[0m
+[0;34mℹ️  File patterns: *.md,*.rs,*.ts,*.tsx,*.js,*.jsx[0m
+[0;34mℹ️  Exclude patterns: *.test.ts,*.spec.ts,*.test.tsx,*.spec.tsx,*.d.ts[0m
+[0;34mℹ️  Cache: [1;33mdisabled (--no-cache)[0m[0m
+
+[1mFiles to review:[0m
+  - AGENTS.md
+  - odd/tasks/mobile-android.md
+
+[0;34mℹ️  Sending to claude for review (timeout: 300s)...[0m
+
+  Waiting for Claude response (timeout: 300s)...
+  ... still waiting (30s elapsed)
+  ... still waiting (60s elapsed)
+Warning: this sign-in ends between 2026-11-13 and 2026-11-16 (in 5 days at the earliest). Renewing it does not move those dates. Run claude auth login before then, or use claude setup-token for unattended jobs.
+STATUS: FAILED
+
+**Violations**
+
+1. **`android/.gitignore:6-7` vs `odd/tasks/mobile-android.md` (L28, item 5)**
+   - Rule: documentation describes implemented behavior only.
+   - Issue: L28 says `.gitignore` "now ignores only `gradle/wrapper/`". The file also ignores `gradlew` and `gradlew.bat`. The wrapper scripts are therefore unversioned, so the Gradle 9.1.0 pin in the A1 decisions rests on generated files that are not in the repo.
+   - Fix: correct L28, or stop ignoring the scripts and say why.
+
+2. **`odd/tasks/mobile-android.md`, A1 row and L30 vs the gga evidence**
+   - Rule: "Run `gga run` before considering a unit complete; fix findings, never suppress them."
+   - Issue: `odd/tasks/evidence/android-a1/gga-run-final-2026-11-08.log` ends `STATUS: FAILED`. It reports one violation, the phase-1 network build at `build-in-docker.sh:54`. The untracked `gga-run-2026-11-08-after-extract.log` also ends `STATUS: FAILED`, with that violation and the `.gitignore` warning. The filename "final" suggests a pass, and L30 lists only two failed runs.
+   - Fix: add these runs to L30. Keep A1 open until a run passes.
+   - Note: the staged `AGENTS.md` already has the L35 exception for phase 1 of this build. That covers the network finding, so it is not counted as a violation. The gga reviewer said `AGENTS.md` was not amended, so its view is stale. Rerun gga on the current staged state to confirm.
+
+**Advisories (not failures)**
+
+- The A1 decisions header says "Sources, read 2026-11-07". L34 shows a re-read on 2026-11-08 with a changed page hash. Update the header and state whether the page exposes a version.
+- L14(b) rests on the agent's own identification of `<local-disk>` as `/Volumes/Scheda SSD`. The isolation location depends on it. Only the owner can confirm it.
+- Open security items are recorded honestly: R1-002 (trust on first use for the verification metadata) and the SHA-1-only check on build-tools 36.0.0 (L23).
+- The L8 deletion before confirmation breached the destructive-action gate at the time. It is self-disclosed and accepted (L9, L20), so I did not count it.
+- gga reports that `claude auth login` must be run before 2026-11-13.
+
+**Checked and compliant:** the technical text is in English. The Italian passages are verbatim owner quotes with English translations. The ODD and RDD commands cited in the log could not be checked against the installed help, so they are unverified.
+
+**Not verified:** I did not run gga and did not read the Gradle or Kotlin sources. The evidence files outside the two logs and `.gitignore` were not opened.
+
+[0;31m❌ CODE REVIEW FAILED[0m
+
+Fix the violations listed above before committing.
+
+[0m

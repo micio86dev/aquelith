@@ -1,0 +1,37 @@
+
+[0;36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+[0;36m[1m  Gentleman Guardian Angel v2.10.1[0m
+[0;36m  Provider-agnostic code review using AI[0m
+[0;36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+
+[0;34mℹ️  Provider: claude[0m
+[0;34mℹ️  Rules file: AGENTS.md[0m
+[0;34mℹ️  File patterns: *.md,*.rs,*.ts,*.tsx,*.js,*.jsx[0m
+[0;34mℹ️  Exclude patterns: *.test.ts,*.spec.ts,*.test.tsx,*.spec.tsx,*.d.ts[0m
+[0;34mℹ️  Cache: [1;33mdisabled (--no-cache)[0m[0m
+
+[1mFiles to review:[0m
+  - AGENTS.md
+  - odd/tasks/mobile-android.md
+
+[0;34mℹ️  Sending to claude for review (timeout: 300s)...[0m
+
+  Waiting for Claude response (timeout: 300s)...
+  ... still waiting (30s elapsed)
+Warning: this sign-in ends between 2026-11-13 and 2026-11-16 (in 5 days at the earliest). Renewing it does not move those dates. Run claude auth login before then, or use claude setup-token for unattended jobs.
+STATUS: PASSED
+
+I checked `AGENTS.md` and `odd/tasks/mobile-android.md` against the coding standards. Scope is those two files only. The build script and Gradle metadata were not in the review set. I also confirmed that the evidence files and docs the task file cites exist in the repo (`accel-check.txt`, `ui-home.xml`, `home.png`, `how.png`, `ui-how.xml`, `ui-back.xml`, `logcat-after-tap.txt`, `android-versions.txt`, `measure-android-sizes.py`, `android-sizes.tsv`, and the three `docs/platforms/` pages).
+
+Points that look like violations on a first read but are not:
+
+- **Non-English text in `mobile-android.md`.** The owner's quotes (L1, L2, L4, L9, L10, L12, L17, L20, L24, L27, L33, L35, L37) are verbatim Italian, each with an English translation. The spec requires verbatim quotes, so this is compliant with the English-docs rule.
+- **Isolation exceptions.** `AGENTS.md` lines 25 and 26 (the Isolation section) are owner-approved and scoped to the Android A1 build and the Google SDK on the host. The task file records the matching owner decisions (L17, L33, L35). The unverified trust of the Google binaries, the TOFU metadata in phase 1, and the SHA-1-only check on build-tools 36.0.0 are all recorded as open, not hidden.
+- **Historical deviations.** L8 (deletion before confirmation), L18 (host run before the exception existed), and L23 (build-tools installed before approval) are recorded as deviations and accepted or ratified in L20, L9, and L24.
+- **Documentation scope.** The A1 decisions are marked as chosen or checked, and the unverified items are labelled (for example, the AGP 9.0.1 patch version and minSdk 26). That matches "documentation describes implemented behavior only."
+
+No findings to report.
+
+[0;32m✅ CODE REVIEW PASSED[0m
+
+[0m

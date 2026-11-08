@@ -1,0 +1,51 @@
+
+[0;36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+[0;36m[1m  Gentleman Guardian Angel v2.10.1[0m
+[0;36m  Provider-agnostic code review using AI[0m
+[0;36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+
+[0;34mℹ️  Provider: claude[0m
+[0;34mℹ️  Rules file: AGENTS.md[0m
+[0;34mℹ️  File patterns: *.md,*.rs,*.ts,*.tsx,*.js,*.jsx[0m
+[0;34mℹ️  Exclude patterns: *.test.ts,*.spec.ts,*.test.tsx,*.spec.tsx,*.d.ts[0m
+[0;34mℹ️  Cache: [1;33mdisabled (--no-cache)[0m[0m
+
+[1mFiles to review:[0m
+  - AGENTS.md
+  - odd/tasks/mobile-android.md
+
+[0;34mℹ️  Sending to claude for review (timeout: 300s)...[0m
+
+  Waiting for Claude response (timeout: 300s)...
+  ... still waiting (30s elapsed)
+Warning: this sign-in ends between 2026-11-13 and 2026-11-16 (in 5 days at the earliest). Renewing it does not move those dates. Run claude auth login before then, or use claude setup-token for unattended jobs.
+STATUS: FAILED
+
+**Violation**
+
+- **File:** `odd/tasks/mobile-android.md`, line 132 (entry L36)
+- **Rule violated:** "Every statement in the Android documents has evidence" (S6), and the rule that documentation must be verifiable.
+- **Issue:** L36 says the findings still open in gga run 5 "are listed in L37". No L37 exists; `grep -n "L37"` returns only that line. The statement points to evidence that is not there.
+- **Fix:** Add L37 with the run-5 findings copied from `odd/tasks/evidence/android-a1/gga-run-2026-11-08-run5.log`, or change L36 to point at that log file.
+
+**Checked and compliant**
+
+- **Language:** The Italian owner quotes (S1, L2, L4, L10, L12, L17, L24, L27, L28, L33, L35) each have an English translation. That is verbatim quoting, not prose in another language.
+- **Evidence files:** `accel-check.txt`, `logcat-after-tap.txt`, `ui-home.xml`, `home.png`, `ui-how.xml`, `how.png`, `ui-back.xml`, `ui-v2-home.xml`, `screen-v2-home.png`, `android-versions.txt`, `measure-android-sizes.py` and `android-sizes.tsv` all exist.
+- **gga status:** All six logs (run 2–5, failed-1, failed-2) end with `STATUS: FAILED`, which matches L30 and L36. The A1 row correctly says the unit is not complete.
+- **Gentle AI commands:** `gentle-ai` 4.3.1 lists the review subcommands the doc cites: `start`, `status`, `capture-result`, `acknowledge-approved`, `assess`. I did not check the individual flags such as `--next-transition`.
+- **Arithmetic:** The footprint totals reconcile (703.2 MiB minimal, 2399.7 MiB with the system image, about 2.34 GiB). The follow-up table has 22 rows: 6 resolved, 12 accepted, 4 open, which matches the "18 dispositioned" claim.
+
+**Not a violation, but blocking the commit**
+
+- The staged change includes gga run 5 failing, and L28(d) says commits happen only after a passing run. Do not commit this set until a run passes.
+
+**Not checked**
+
+- `android/app/src/main/java/local/aqelith/host/MainActivity.kt` and `android/build-in-docker.sh` were not in the review set, so I did not review them.
+
+[0;31m❌ CODE REVIEW FAILED[0m
+
+Fix the violations listed above before committing.
+
+[0m
